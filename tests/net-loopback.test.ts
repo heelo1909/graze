@@ -74,4 +74,19 @@ describe('loopback transport', () => {
     expect(err).toBeInstanceOf(RoomError);
     expect((err as RoomError).kind).toBe('not-found');
   });
+
+  test('join normalizes messy code', async () => {
+    const hub = new LoopbackHub();
+    const host = await hub.transport().createRoom();
+    const messy = ' ' + host.code.toLowerCase().split('').join('-') + ' ';
+    const joiner = await hub.transport().joinRoom(messy);
+    expect(joiner.code).toBe(host.code);
+  });
+
+  test('join rejects invalid code', async () => {
+    const hub = new LoopbackHub();
+    const err = await hub.transport().joinRoom('KQ0T').catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(RoomError);
+    expect((err as RoomError).kind).toBe('not-found');
+  });
 });

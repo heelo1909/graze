@@ -2,7 +2,7 @@
 // peerjs is loaded with a dynamic import so it ships in its own chunk and the
 // solo game never downloads it. Same semantics as the loopback; see transport.ts.
 import type { DataConnection, Peer } from 'peerjs';
-import { makeRoomCode, peerIdFor } from './code';
+import { makeRoomCode, normalizeCode, peerIdFor } from './code';
 import { RoomError } from './transport';
 import type { Link, PeerId, Transport } from './transport';
 
@@ -112,7 +112,9 @@ export function peerTransport(): Transport {
       throw new RoomError('taken', 'Could not find a free room code');
     },
 
-    async joinRoom(code: string): Promise<Link> {
+    async joinRoom(raw: string): Promise<Link> {
+      const code = normalizeCode(raw);
+      if (code === null) throw new RoomError('not-found', 'Check the code');
       const PeerCtor = await loadPeer();
       const peer = new PeerCtor();
       try {

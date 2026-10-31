@@ -1,6 +1,6 @@
 // In-memory transport for tests. Everything is queued and delivered in order
 // on flush(); messages round-trip through JSON so non-serialisable data fails.
-import { makeRoomCode } from './code';
+import { makeRoomCode, normalizeCode } from './code';
 import { RoomError } from './transport';
 import type { Link, PeerId, Transport } from './transport';
 
@@ -80,7 +80,9 @@ export class LoopbackHub {
     return host;
   }
 
-  private join(code: string): Promise<Link> {
+  private join(raw: string): Promise<Link> {
+    const code = normalizeCode(raw);
+    if (code === null) return Promise.reject(new RoomError('not-found', 'Check the code'));
     const room = this.rooms.get(code);
     if (!room) return Promise.reject(new RoomError('not-found', `No room ${code}`));
     const id = `joiner-${this.nextId++}`;

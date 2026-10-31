@@ -96,11 +96,7 @@ export function runNetTest(root: HTMLElement, t: Transport): void {
   });
 
   join.addEventListener('click', () => {
-    const code = input.value.toUpperCase().replace(/[\s-]/g, '');
-    if (code.length === 0) {
-      status.textContent = 'Type the room code first.';
-      return;
-    }
+    const code = input.value;
     setBusy(true);
     status.textContent = `Joining ${code}...`;
     t.joinRoom(code).then((l) => {
