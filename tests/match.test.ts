@@ -38,3 +38,19 @@ test('match runs countdown → play → roundEnd → next round countdown', () =
   }
   expect(TUNING.COUNTDOWN_S).toBeGreaterThan(0);
 });
+
+test('cutoffTotals accumulates each roundOver cutoffs by owner', () => {
+  const m = createMatch(slots, 7);
+  expect(m.cutoffTotals).toEqual([0, 0]);
+  m.phase = 'play';
+  // Make car 0 crash into car 1's trail: owner 1 gets a cut-off.
+  const w = m.world;
+  for (let y = 300; y <= 460; y += 2) w.grid.stamp(600, y, 1, 0);
+  const c0 = w.cars[0]!;
+  const c1 = w.cars[1]!;
+  c0.x = 560; c0.y = 380; c0.heading = 0; c0.vx = 100; c0.vy = 0; c0.lastX = 560; c0.lastY = 380;
+  c1.x = 200; c1.y = 700; c1.heading = -Math.PI / 2; c1.vx = 0; c1.vy = -100; c1.lastX = 200; c1.lastY = 700;
+  for (let i = 0; i < 60 * 30 && m.phase === 'play'; i++) stepMatch(m, steers);
+  expect(m.phase).not.toBe('play');
+  expect(m.cutoffTotals).toEqual([0, 1]);
+});

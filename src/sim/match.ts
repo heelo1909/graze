@@ -11,6 +11,8 @@ export interface Match {
   round: number;
   totals: number[];
   lastRound: number[];
+  /** Cut-offs scored per slot over the whole match (shown on the match-end screen). */
+  cutoffTotals: number[];
   world: World;
   slots: Slot[];
   seed: number;
@@ -22,6 +24,7 @@ export function createMatch(slots: Slot[], seed: number): Match {
   return {
     phase: 'countdown', phaseTime: 0, round: 1,
     totals: slots.map(() => 0), lastRound: slots.map(() => 0),
+    cutoffTotals: slots.map(() => 0),
     world: createWorld(slots, seed + 1), slots, seed,
   };
 }
@@ -39,6 +42,7 @@ export function stepMatch(m: Match, steers: Steer[]): SimEvent[] {
         if (e.type !== 'roundOver') continue;
         m.lastRound = roundPoints(m.slots.length, e.outOrder, e.winner, e.cutoffs);
         m.totals = m.totals.map((t, i) => t + (m.lastRound[i] ?? 0));
+        for (const o of e.cutoffs) if (o >= 0 && o < m.cutoffTotals.length) m.cutoffTotals[o]!++;
         m.phase = 'roundEnd';
         m.phaseTime = 0;
       }
