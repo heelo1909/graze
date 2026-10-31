@@ -1,9 +1,9 @@
 # Graze
 
-A minimal neon browser game. Cars drift with only ←/→, leave glowing trails and cut each other off. Up to 4 players (bots fill empty spots). Built with Vite + TypeScript, deployed to GitHub Pages.
+A minimal browser game. Cars drift with only ←/→, leave glowing trails and cut each other off. Up to 4 players (bots fill empty spots). Built with Vite + TypeScript, deployed to GitHub Pages.
 
 - **Spec (the authority):** `sections.md`. If code and spec disagree, the spec wins. If the spec is silent, ask.
-- **Current plan:** `docs/superpowers/plans/2026-10-31-graze-solo.md` (milestone 1: solo vs bots). Multiplayer is milestone 2 and is **not** started until the user approves the handling feel.
+- **Current plan:** `docs/superpowers/plans/2026-10-31-graze-couch.md` (milestone 2a: same-keyboard 2-player). Milestone 1 (solo vs bots, `2026-10-31-graze-solo.md`) is done. Online room codes are milestone 2b.
 
 ## Commands
 
@@ -40,14 +40,14 @@ Never say something works without running the harness that proves it. Report fai
 ## Things you must not change without the user's OK
 
 - **Handling feel:** `BASE_SPEED`, `TURN_*`, `GRIP_*`, `HOLD_*`, `BOOST_*`. The user approves these by playing.
-- Controls: only ←/A and →/D during play. No new buttons.
-- Scope: no power-ups, accounts or online play in milestone 1.
+- Controls: only ←/A and →/D during play (in 2-player mode, P1 A/D and P2 ←/→). No new buttons during play.
+- Scope: no power-ups or accounts.
 - Never push, create a GitHub repo, or deploy without the user's explicit go-ahead.
 
 ## Performance budget (MacBook Air M4, Chrome and Safari)
 
 - 60 fps with 4 cars at peak. Cap device pixel ratio at 2.
-- Never use `shadowBlur` or `ctx.filter` in the frame loop. Use pre-drawn glow sprites and downscaled-canvas bloom.
+- Never use `shadowBlur` or `ctx.filter` in the frame loop. The look is flat and minimal (no bloom, no big glows); keep it that way unless the user asks.
 - Draw trails once onto a stored layer, in arena units. Don't redraw all trails every frame.
 
 ## Working efficiently

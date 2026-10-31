@@ -7,7 +7,18 @@ const slots = [
 ];
 
 test('human winner reads "You win", never "<Name> wins"', () => {
-  expect(matchHeading(slots, 0)).toBe('You win');
+  expect(matchHeading(slots, 0, [0])).toBe('You win');
 });
-test('bot winner reads "<Name> wins"', () => expect(matchHeading(slots, 1)).toBe('Pixel wins'));
-test('no winner', () => expect(matchHeading(slots, null)).toBe('Match over'));
+test('bot winner reads "<Name> wins"', () => expect(matchHeading(slots, 1, [0])).toBe('Pixel wins'));
+test('no winner', () => expect(matchHeading(slots, null, [0])).toBe('Match over'));
+
+test('with two local players the human winner is named', () => {
+  const couch = [
+    { name: 'P1', color: '#fff', isBot: false },
+    { name: 'P2', color: '#f90', isBot: false },
+    { name: 'Pixel', color: '#f0f', isBot: true },
+  ];
+  expect(matchHeading(couch, 1, [0, 1])).toBe('P2 wins');
+  expect(matchHeading(couch, 0, [0, 1])).toBe('P1 wins');
+  expect(matchHeading(couch, 2, [0, 1])).toBe('Pixel wins');
+});

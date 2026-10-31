@@ -1,8 +1,8 @@
 import type { Slot } from '../sim/types';
 
-/** Match-end heading: "You win" for the human slot, "<Name> wins" for a bot. */
-export function matchHeading(slots: Slot[], winner: number | null): string {
+/** Match-end heading: "You win" when the sole local player won, otherwise "<Name> wins". */
+export function matchHeading(slots: Slot[], winner: number | null, local: number[]): string {
   const s = winner === null ? undefined : slots[winner];
   if (!s) return 'Match over';
-  return s.isBot ? `${s.name} wins` : 'You win';
+  return local.length === 1 && local[0] === winner ? 'You win' : `${s.name} wins`;
 }

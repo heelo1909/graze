@@ -7,7 +7,7 @@ import { darken, lighten } from './color';
 import { DebugLayer } from './debug';
 import { Fx } from './fx';
 import { BODY_FONT, DISPLAY_FONT, ctx2d, makeCanvas } from './glow';
-import { Hud, announce, humanId } from './hud';
+import { Hud, announce, soleLocal } from './hud';
 import {
   HISTORY, buildBase, buildVignette, drawAfterimage, drawCar, drawWalls, wallHeat,
 } from './scene';
@@ -49,6 +49,7 @@ export class Renderer {
   private lastReal = -1;
   private lastPhase = '';
   private lastPhaseTime = 0;
+  private local: number[] = [];
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     this.ctx = ctx2d(canvas);
@@ -62,6 +63,12 @@ export class Renderer {
       Promise.all([fonts.load(`800 40px ${DISPLAY_FONT}`), fonts.load(`600 13px ${BODY_FONT}`)])
         .then(() => this.hud.resetTextCache(), () => undefined);
     }
+  }
+
+  /** Car ids steered on this device: they get "YOU", banners and the big shake. */
+  setLocal(local: number[]): void {
+    this.local = [...local];
+    this.hud.local = this.local;
   }
 
   setDebug(on: boolean): void {
@@ -155,9 +162,9 @@ export class Renderer {
     this.fx.ring(e.x, e.y, 70, color, 0.45);
     if (e.cause === 'trail' && e.by !== null) this.fx.tether(e.x, e.y, e.by, 1.6);
 
-    const a = announce(e, m);
-    const me = humanId(m);
-    this.shake = Math.max(this.shake, me >= 0 && (e.car === me || e.by === me) ? 14 : 5);
+    const a = announce(e, m, this.local);
+    const mine = this.local.includes(e.car) || (e.by !== null && this.local.includes(e.by));
+    this.shake = Math.max(this.shake, mine ? 14 : 5);
     if (a?.kind === 'banner') this.hud.banner(a.big, a.small, a.color);
     else if (a?.kind === 'feed') this.hud.feed(a.parts);
   }
@@ -206,7 +213,7 @@ export class Renderer {
       if (c.alive) drawAfterimage(ctx, c, this.hist[c.id]!, this.histN[c.id]!, this.histHead[c.id]!);
     }
     this.fx.draw(ctx, cars);
-    const me = humanId(m);
+    const me = soleLocal(this.local);
     for (const c of cars) {
       if (c.alive) drawCar(ctx, c, c.id === me ? 'YOU' : c.name, m.phase === 'countdown');
     }

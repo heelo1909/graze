@@ -4,6 +4,7 @@ import { TUNING } from '../config';
 import { targetPoints } from '../sim/scoring';
 import type { Match } from '../sim/match';
 import type { SimEvent } from '../sim/types';
+import { hintText } from '../players';
 import { BODY_FONT, DISPLAY_FONT, font, glowText, type TextLine } from './glow';
 import type { View } from './viewport';
 
@@ -14,11 +15,11 @@ interface TextImg { canvas: HTMLCanvasElement; w: number; h: number }
 const BANNER_S = 2;
 const FEED_S = 3.5;
 const FEED_MAX = 4;
-const HINT = '←  →  steer   ·   hold to drift harder   ·   skim past trails to boost   ·   gaps let you slip through';
 
-/** The human player's car id, or -1 when every slot is a bot. */
-export function humanId(m: Match): number {
-  return m.slots.findIndex((s) => !s.isBot);
+/** The one car steered on this device, or -1 when there are none or several
+ *  (then nobody is "YOU" and every crash goes to the feed). */
+export function soleLocal(local: number[]): number {
+  return local.length === 1 ? local[0]! : -1;
 }
 
 type FeedPart = { text: string; color: string };
@@ -28,10 +29,10 @@ export type Announcement =
 
 const DIM = 'rgba(255,255,255,0.5)';
 
-/** What a crash shows (spec 4.7): a banner when the human is involved, else a feed line.
- *  Returns null for the rival's half of a head-on with the human (the human's own banner covers it). */
-export function announce(e: Extract<SimEvent, { type: 'crash' }>, m: Match): Announcement | null {
-  const me = humanId(m);
+/** What a crash shows (spec 4.7): a banner when the sole local player is involved, else a feed line.
+ *  Returns null for the rival's half of a head-on with that player (their own banner covers it). */
+export function announce(e: Extract<SimEvent, { type: 'crash' }>, m: Match, local: number[]): Announcement | null {
+  const me = soleLocal(local);
   const name = (id: number | null): string => (id === null ? '?' : (m.slots[id]?.name ?? '?'));
   const color = (id: number | null): string => (id === null ? '#ffffff' : (m.slots[id]?.color ?? '#ffffff'));
   const cut = e.cause === 'trail' && e.by !== null;
@@ -56,6 +57,8 @@ export function announce(e: Extract<SimEvent, { type: 'crash' }>, m: Match): Ann
 export class Hud {
   /** Device pixel ratio used for pre-rendered text. The renderer keeps it current. */
   dpr = 1;
+  /** Car ids steered on this device. The renderer keeps it current. */
+  local: number[] = [];
   private bannerNow: Banner | null = null;
   private lines: FeedLine[] = [];
   private textCache = new Map<string, TextImg>();
@@ -100,7 +103,7 @@ export class Hud {
     const cx = sw / 2;
     const aw = TUNING.ARENA_W * v.scale;
     const ah = TUNING.ARENA_H * v.scale;
-    const me = humanId(m);
+    const me = soleLocal(this.local);
     ctx.textBaseline = 'middle';
 
     // top bar: names + points (with a progress line toward the target), round, boost
@@ -176,7 +179,7 @@ export class Hud {
     ctx.textAlign = 'center';
     ctx.font = font(500, 12, BODY_FONT);
     ctx.fillStyle = 'rgba(255,255,255,0.32)';
-    ctx.fillText(HINT, cx, sh - 16);
+    ctx.fillText(hintText(this.local.length >= 2 ? 2 : 1), cx, sh - 16);
 
     const my = v.oy + ah / 2;
     // the round-end / match-end titles take over the same space

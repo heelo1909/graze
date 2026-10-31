@@ -17,26 +17,37 @@ const text = (a: ReturnType<typeof announce>): string =>
 
 describe('crash announcements (spec 4.7)', () => {
   test('you hit a rival trail', () => {
-    const a = announce(crash(0, 'trail', 2), m);
+    const a = announce(crash(0, 'trail', 2), m, [0]);
     expect(a?.kind).toBe('banner');
     expect(text(a)).toBe('CUT OFF BY ROOK');
     expect(a?.kind === 'banner' && a.color).toBe('#ffd84d');
   });
-  test('a rival hits your trail', () => expect(text(announce(crash(1, 'trail', 0), m))).toBe('YOU CUT OFF PIXEL'));
+  test('a rival hits your trail', () => expect(text(announce(crash(1, 'trail', 0), m, [0]))).toBe('YOU CUT OFF PIXEL'));
   test('own trail, wall, head-on', () => {
-    expect(text(announce(crash(0, 'own', 0), m))).toBe('YOUR OWN TRAIL');
-    expect(text(announce(crash(0, 'wall', null), m))).toBe('INTO THE WALL');
-    expect(text(announce(crash(0, 'head', 3), m))).toBe('HEAD-ON WITH MOSS');
+    expect(text(announce(crash(0, 'own', 0), m, [0]))).toBe('YOUR OWN TRAIL');
+    expect(text(announce(crash(0, 'wall', null), m, [0]))).toBe('INTO THE WALL');
+    expect(text(announce(crash(0, 'head', 3), m, [0]))).toBe('HEAD-ON WITH MOSS');
   });
   test("the rival's half of your head-on is silent (your banner covers it)", () =>
-    expect(announce(crash(3, 'head', 0), m)).toBeNull());
+    expect(announce(crash(3, 'head', 0), m, [0])).toBeNull());
   test('crashes without you go to the feed', () => {
-    expect(text(announce(crash(3, 'trail', 2), m))).toBe('Rook cut off Moss');
-    expect(text(announce(crash(1, 'wall', null), m))).toBe('Pixel crashed');
-    expect(announce(crash(1, 'own', 1), m)?.kind).toBe('feed');
+    expect(text(announce(crash(3, 'trail', 2), m, [0]))).toBe('Rook cut off Moss');
+    expect(text(announce(crash(1, 'wall', null), m, [0]))).toBe('Pixel crashed');
+    expect(announce(crash(1, 'own', 1), m, [0])?.kind).toBe('feed');
   });
   test('with no human slot everything goes to the feed', () => {
     const bots = createMatch(SLOTS.map((s) => ({ ...s, isBot: true })), 1);
-    expect(announce(crash(0, 'trail', 2), bots)?.kind).toBe('feed');
+    expect(announce(crash(0, 'trail', 2), bots, [])?.kind).toBe('feed');
+  });
+  test('with two local players every crash goes to the feed, by name', () => {
+    const couch = createMatch([
+      { name: 'P1', color: '#4de3ff', isBot: false },
+      { name: 'P2', color: '#ff9a3d', isBot: false },
+      SLOTS[1]!, SLOTS[2]!,
+    ], 1);
+    const a = announce(crash(1, 'trail', 0), couch, [0, 1]);
+    expect(a?.kind).toBe('feed');
+    expect(text(a)).toBe('P1 cut off P2');
+    expect(announce(crash(0, 'wall', null), couch, [0, 1])?.kind).toBe('feed');
   });
 });

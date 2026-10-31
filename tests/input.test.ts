@@ -91,3 +91,37 @@ test('Alt+Arrow is defaultPrevented (no browser Back/Forward) and does not steer
   expect(e.defaultPrevented).toBe(true);
   expect(i.steer()).toBe(0);
 });
+
+test('scheme ad ignores arrows', () => {
+  const i = make();
+  down('ArrowLeft');
+  expect(i.steer('ad')).toBe(0);
+  down('KeyD');
+  expect(i.steer('ad')).toBe(1);
+});
+
+test('scheme arrows ignores A/D', () => {
+  const i = make();
+  down('KeyA');
+  expect(i.steer('arrows')).toBe(0);
+  down('ArrowLeft');
+  expect(i.steer('arrows')).toBe(-1);
+});
+
+test('two schemes read independently', () => {
+  const i = make();
+  down('KeyA');
+  down('ArrowRight');
+  expect(i.steer('ad')).toBe(-1);
+  expect(i.steer('arrows')).toBe(1);
+  expect(i.steer('both')).toBe(0);
+});
+
+test('releaseAll clears both schemes', () => {
+  const i = make();
+  down('KeyD');
+  down('ArrowLeft');
+  window.dispatchEvent(new Event('blur'));
+  expect(i.steer('ad')).toBe(0);
+  expect(i.steer('arrows')).toBe(0);
+});
