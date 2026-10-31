@@ -32,6 +32,8 @@ audio.setMuted(loadPref('muted') === '1');
 
 let cfg: { name: string; difficulty: Difficulty } = { name: 'You', difficulty: 'normal' };
 let m: Match | null = null;
+/** Car ids steered on this device. */
+let local: number[] = [HUMAN];
 let mem: BotMemory[] = [];
 let acc = 0;
 const interp = new CarInterp();
@@ -54,6 +56,8 @@ function startMatch(): void {
     ...BOTS.map((b) => ({ name: b.name, color: b.color, isBot: true })),
   ];
   m = createMatch(slots, Date.now() % 100000);
+  local = [HUMAN];
+  renderer.setLocal(local);
   mem = slots.map(() => newBotMemory());
   acc = DT / 2; // start mid-step so the first frames are not a half-step behind
   slowLeft = 0;
@@ -96,9 +100,9 @@ function react(events: SimEvent[], match: Match): void {
   for (const e of events) {
     if (e.type === 'graze' && e.car === HUMAN) audio.graze(match.world.cars[HUMAN]?.boost ?? 0);
     else if (e.type === 'crash') audio.crash();
-    else if (e.type === 'roundOver' && roundWinJingle(e.winner, HUMAN, decided(match))) audio.win();
+    else if (e.type === 'roundOver' && roundWinJingle(e.winner, local, decided(match))) audio.win();
   }
-  if (triggersSlowmo(events, HUMAN)) slowLeft = TUNING.SLOWMO_S;
+  if (triggersSlowmo(events, local)) slowLeft = TUNING.SLOWMO_S;
 
   if (match.phase === 'countdown') {
     const n = Math.ceil(TUNING.COUNTDOWN_S - match.phaseTime - 1e-6);
@@ -112,8 +116,8 @@ function react(events: SimEvent[], match: Match): void {
   if (match.phase === 'matchEnd' && !endShown) {
     endShown = true;
     input.releaseAll();
-    if (matchWinJingle(matchWinner(match.totals, targetPoints(match.slots.length)), HUMAN)) audio.win();
-    showMatchEnd(ui, match, startMatch, openTitle);
+    if (matchWinJingle(matchWinner(match.totals, targetPoints(match.slots.length)), local)) audio.win();
+    showMatchEnd(ui, match, local, startMatch, openTitle);
   }
 }
 

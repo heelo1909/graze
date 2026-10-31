@@ -107,11 +107,11 @@ export function showTitle(
   play.focus();
 }
 
-export function showMatchEnd(root: HTMLElement, m: Match, onAgain: () => void, onMenu: () => void): void {
+export function showMatchEnd(root: HTMLElement, m: Match, local: number[], onAgain: () => void, onMenu: () => void): void {
   clearScreen(root);
   const w = matchWinner(m.totals, targetPoints(m.slots.length));
   const wrap = el('div', 'screen end');
-  const head = el('h2', 'winner', matchHeading(m.slots, w));
+  const head = el('h2', 'winner', matchHeading(m.slots, w, local));
   if (w !== null) head.style.setProperty('--c', m.slots[w]?.color ?? '#fff');
   wrap.append(head);
 
