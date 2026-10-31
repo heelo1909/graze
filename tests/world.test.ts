@@ -63,10 +63,10 @@ describe('stepWorld', () => {
     expect(cr[0]).toMatchObject({ car: 0, cause: 'own', by: 0 });
   });
 
-  test('two cars meeting crash head-on, both out, same tick group', () => {
+  test.each(Array.from({ length: 21 }, (_, i) => 30 + i))('two cars meeting crash head-on (start gap %i), both out, same tick group', (gap) => {
     const w = createWorld(slots(3), 1);
     place(w.cars[0]!, 600, 380, 0);
-    place(w.cars[1]!, 640, 380, Math.PI);
+    place(w.cars[1]!, 600 + gap, 380, Math.PI);
     place(w.cars[2]!, 100, 700, 0);
     const cr = crashes(run(w, 20));
     expect(cr).toHaveLength(2);
@@ -76,6 +76,7 @@ describe('stepWorld', () => {
     expect(cr[0]!.tick).toBe(cr[1]!.tick);
     expect(w.outOrder).toHaveLength(1);
     expect([...w.outOrder[0]!].sort()).toEqual([0, 1]);
+    expect(w.cutoffs).toEqual([]);
   });
 
   test('trail has gaps: over 6s each car has >=2 ticks with gapOn and no trail event', () => {
@@ -116,6 +117,22 @@ describe('stepWorld', () => {
     expect(w2.cars[0]!.boost).toBe(0);
     expect(w2.cars[0]!.grazing).toBe(false);
     expect(ev2.filter((e) => e.type === 'graze')).toEqual([]);
+
+    // Geometry: samples really do lie outside the bounds here, so the ignore branch is exercised.
+    const c = w2.cars[0]!;
+    const outside = Array.from({ length: TUNING.GRAZE_SAMPLES }, (_, s) =>
+      c.x + Math.cos((s / TUNING.GRAZE_SAMPLES) * Math.PI * 2) * TUNING.GRAZE_RADIUS > w2.bounds.right,
+    ).filter(Boolean).length;
+    expect(outside).toBeGreaterThan(0);
+
+    // Same setup with a wall factor > 0 does register a wall graze.
+    const w3 = createWorld(slots(2), 1);
+    place(w3.cars[0]!, 1190, 100, Math.PI / 2);
+    place(w3.cars[1]!, 600, 700, Math.PI);
+    const ev3: SimEvent[] = [];
+    for (let i = 0; i < 10; i++) ev3.push(...stepWorld(w3, [0, 0], 0.5));
+    expect(w3.cars[0]!.boost).toBeGreaterThan(0);
+    expect(ev3.some((e) => e.type === 'graze' && e.car === 0 && e.source === -2)).toBe(true);
   });
 
   test('edgeTime accumulates only while within EDGE_ZONE of bounds', () => {

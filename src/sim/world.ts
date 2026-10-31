@@ -3,7 +3,7 @@ import { boundsAt } from './arena';
 import { makeCar, stepCar } from './car';
 import { Grid } from './grid';
 import { makeRng } from './rng';
-import type { CrashCause, SimEvent, Slot, Steer, World } from './types';
+import type { Car, CrashCause, SimEvent, Slot, Steer, World } from './types';
 
 const SPAWNS: ReadonlyArray<readonly [number, number, number]> = [
   [260, 150, 0],
@@ -38,9 +38,31 @@ export function createWorld(slots: Slot[], seed: number): World {
   };
 }
 
+// Head-on: bodies overlapping, or noses converging within grid reach (so the
+// grid check can never pre-empt a head-on) while the lateral offset stays < HEAD_ON_DIST.
+const HEAD_ON_REACH = 28;
+function isHeadOn(a: Car, o: Car): boolean {
+  const dx = o.x - a.x;
+  const dy = o.y - a.y;
+  const d = Math.hypot(dx, dy);
+  if (d < TUNING.HEAD_ON_DIST) return true;
+  if (d >= HEAD_ON_REACH) return false;
+  const ma = Math.hypot(a.vx, a.vy) || 1;
+  const mo = Math.hypot(o.vx, o.vy) || 1;
+  const ax = a.vx / ma, ay = a.vy / ma, ox = o.vx / mo, oy = o.vy / mo;
+  if (ax * ox + ay * oy > -0.5) return false;
+  const lateralA = Math.abs(dx * ay - dy * ax);
+  const lateralO = Math.abs(dx * oy - dy * ox);
+  const aheadA = dx * ax + dy * ay > 0;
+  const aheadO = -(dx * ox + dy * oy) > 0;
+  return aheadA && aheadO && lateralA < TUNING.HEAD_ON_DIST && lateralO < TUNING.HEAD_ON_DIST;
+}
+
 interface Crash { cause: CrashCause; by: number | null; x: number; y: number }
 
-export function stepWorld(w: World, steers: Steer[]): SimEvent[] {
+export function stepWorld(
+  w: World, steers: Steer[], wallGrazeFactor: number = TUNING.WALL_GRAZE_FACTOR,
+): SimEvent[] {
   if (w.over) return [];
   const ev: SimEvent[] = [];
   const dt = DT;
@@ -81,7 +103,7 @@ export function stepWorld(w: World, steers: Steer[]): SimEvent[] {
     for (let j = i + 1; j < live.length; j++) {
       const a = live[i]!;
       const o = live[j]!;
-      if (Math.hypot(a.x - o.x, a.y - o.y) < TUNING.HEAD_ON_DIST) {
+      if (isHeadOn(a, o)) {
         crashes.set(a.id, { cause: 'head', by: o.id, x: a.x, y: a.y });
         crashes.set(o.id, { cause: 'head', by: a.id, x: o.x, y: o.y });
       }
@@ -124,8 +146,8 @@ export function stepWorld(w: World, steers: Steer[]): SimEvent[] {
   // 4. trails
   for (const c of w.cars) {
     if (!c.alive) continue;
-    if (!c.gapOn) {
-      const dist = Math.hypot(c.x - c.lastX, c.y - c.lastY);
+    const dist = Math.hypot(c.x - c.lastX, c.y - c.lastY);
+    if (!c.gapOn && dist > 0) {
       const n = Math.max(1, Math.ceil(dist / TRAIL_STEP));
       let px = c.lastX;
       let py = c.lastY;
@@ -157,7 +179,7 @@ export function stepWorld(w: World, steers: Steer[]): SimEvent[] {
       let src = -1;
       let factor = 1;
       if (sx < b.left || sx > b.right || sy < b.top || sy > b.bottom) {
-        if (TUNING.WALL_GRAZE_FACTOR > 0) { src = -2; factor = TUNING.WALL_GRAZE_FACTOR; }
+        if (wallGrazeFactor > 0) { src = -2; factor = wallGrazeFactor; }
       } else {
         src = w.grid.hitAt(sx, sy, c.id, w.time, TUNING.GRAZE_OWN_FRESH_S);
       }
@@ -195,7 +217,7 @@ export function stepWorld(w: World, steers: Steer[]): SimEvent[] {
     w.endTimer -= dt;
     if (w.endTimer <= 0) {
       w.over = true;
-      ev.push({ type: 'roundOver', winner: w.winner, outOrder: w.outOrder, cutoffs: w.cutoffs });
+      ev.push({ type: 'roundOver', winner: w.winner, outOrder: w.outOrder.map((g) => [...g]), cutoffs: [...w.cutoffs] });
     }
   }
   return ev;
