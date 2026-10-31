@@ -26,13 +26,17 @@ export class Grid {
     this.time.fill(0);
   }
 
-  // Marks the (2r+1)^2 block of cells around (x, y). Occupied cells are left untouched.
+  // Marks the (2r+1)^2 block (radius 0 = plus shape) of cells around (x, y). Occupied cells are left untouched.
   stamp(x: number, y: number, owner: number, time: number): void {
     const cx = Math.floor(x / this.cell);
     const cy = Math.floor(y / this.cell);
     const r = this.radius;
-    for (let dy = -r; dy <= r; dy++) {
-      for (let dx = -r; dx <= r; dx++) {
+    // radius 0 stamps a plus (4-connected) so diagonal trails have no corner gaps to slip through
+    const plus = r === 0;
+    const e = plus ? 1 : r;
+    for (let dy = -e; dy <= e; dy++) {
+      for (let dx = -e; dx <= e; dx++) {
+        if (plus && dx !== 0 && dy !== 0) continue;
         const col = cx + dx;
         const row = cy + dy;
         if (col < 0 || row < 0 || col >= this.cols || row >= this.rows) continue;

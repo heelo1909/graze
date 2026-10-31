@@ -1,3 +1,4 @@
+import { DT } from '../config';
 import { boundsAt } from '../sim/arena';
 import { stepCar } from '../sim/car';
 import type { Car, Steer, World } from '../sim/types';
@@ -18,14 +19,14 @@ export function newBotMemory(): BotMemory {
   return { timer: 0, steer: 0 };
 }
 
-const SIM_DT = 1 / 60;
-const TICK = 1 / 60;
+const SIM_DT = DT;
+const SWEEP_STEP = 1;
 const NOSE = 9;
 const RIVAL_CLEAR = 14;
 const RIVAL_STEP = 0.06;
 const SIDE_W = 0.5;
 const SIDE_ANGLE = 0.7;
-const RAY_STEP = 3;
+const RAY_STEP = 2;
 const TAU = Math.PI * 2;
 
 const normAngle = (a: number): number => {
@@ -55,6 +56,13 @@ function freeRay(w: World, id: number, x: number, y: number, ang: number, look: 
 function simArc(w: World, car: Car, s: Steer, horizonS: number, look: number): number {
   Object.assign(scratch, car);
   let t = 0;
+  let pnx = car.x;
+  let pny = car.y;
+  {
+    const m0 = Math.hypot(car.vx, car.vy) || 1;
+    pnx += (car.vx / m0) * NOSE;
+    pny += (car.vy / m0) * NOSE;
+  }
   while (t < horizonS - 1e-9) {
     stepCar(scratch, s, SIM_DT);
     t += SIM_DT;
@@ -63,7 +71,14 @@ function simArc(w: World, car: Car, s: Steer, horizonS: number, look: number): n
     const ny = scratch.y + (scratch.vy / m) * NOSE;
     const b = boundsAt(w.time + t);
     if (nx < b.left || nx > b.right || ny < b.top || ny > b.bottom) return t * 1000;
-    if (w.grid.hitAt(nx, ny, car.id, w.time, 0.4 + t) !== -1) return t * 1000;
+    const n = Math.max(1, Math.ceil(Math.hypot(nx - pnx, ny - pny) / SWEEP_STEP));
+    for (let k = 1; k <= n; k++) {
+      const sx = pnx + ((nx - pnx) * k) / n;
+      const sy = pny + ((ny - pny) * k) / n;
+      if (w.grid.hitAt(sx, sy, car.id, w.time, 0.4 + t) !== -1) return t * 1000;
+    }
+    pnx = nx;
+    pny = ny;
     for (const r of w.cars) {
       if (r.id === car.id || !r.alive) continue;
       // rivals are assumed to hold their course: keep clear of their projected path (position and fresh trail)
@@ -82,7 +97,7 @@ function simArc(w: World, car: Car, s: Steer, horizonS: number, look: number): n
 export function botSteer(w: World, id: number, mem: BotMemory, diff: Difficulty): Steer {
   const car = w.cars[id];
   if (!car || !car.alive) return 0;
-  mem.timer -= TICK;
+  mem.timer -= DT;
   if (mem.timer > 0) return mem.steer;
   const d = DIFFICULTY[diff];
   mem.timer = w.rng.range(d.reactMin, d.reactMax);

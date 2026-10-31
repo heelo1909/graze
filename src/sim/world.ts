@@ -13,6 +13,7 @@ const SPAWNS: ReadonlyArray<readonly [number, number, number]> = [
 ];
 const CLAMP_PAD = 6;
 const TRAIL_STEP = 2;
+const SWEEP_STEP = 1;
 
 export function createWorld(slots: Slot[], seed: number): World {
   const rng = makeRng(seed);
@@ -121,13 +122,24 @@ export function stepWorld(
         crashes.set(c.id, { cause: 'wall', by: null, x: nx, y: ny });
         break;
       }
-      const hit = w.grid.hitAt(nx, ny, c.id, w.time, TUNING.OWN_FRESH_S);
-      if (hit !== -1) {
-        crashes.set(c.id, hit === c.id
-          ? { cause: 'own', by: c.id, x: nx, y: ny }
-          : { cause: 'trail', by: hit, x: nx, y: ny });
-        break;
+      // Sweep the nose from where it was last tick to where it is now, so no
+      // occupied cell can be skipped whatever the stamp radius or speed.
+      const px = c.lastX + dx * off;
+      const py = c.lastY + dy * off;
+      const n = Math.max(1, Math.ceil(Math.hypot(nx - px, ny - py) / SWEEP_STEP));
+      let found = false;
+      for (let k = 1; k <= n && !found; k++) {
+        const sx = px + ((nx - px) * k) / n;
+        const sy = py + ((ny - py) * k) / n;
+        const hit = w.grid.hitAt(sx, sy, c.id, w.time, TUNING.OWN_FRESH_S);
+        if (hit !== -1) {
+          crashes.set(c.id, hit === c.id
+            ? { cause: 'own', by: c.id, x: sx, y: sy }
+            : { cause: 'trail', by: hit, x: sx, y: sy });
+          found = true;
+        }
       }
+      if (found) break;
     }
   }
   if (crashes.size > 0) {
