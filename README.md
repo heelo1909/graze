@@ -1,12 +1,12 @@
 # Graze
 
 A minimal neon browser game. Cars drift with only two keys, leave glowing trails and cut each other off.
-Up to 4 players; bots fill empty spots.
+Milestone 1 is solo: you against 3 bots. Online play for up to 4 players comes later.
 
 ## Controls
 
 - Steer with `←` / `→` or `A` / `D`.
-- Tap to turn; hold to slide harder and build a boost.
+- Tap to turn; hold to slide harder. Skim past trails (without touching them) to build a boost.
 
 ## Run locally
 
