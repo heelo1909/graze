@@ -103,9 +103,10 @@ export class HostSession {
       return (peer == null ? undefined : this.steers.get(peer)) ?? 0;
     });
     const events = stepMatch(m, steers);
+    const ended = (): boolean => m.phase === 'matchEnd'; // stepMatch may have moved it on
     this.pending.push(...events);
     this.tickCount++;
-    if (this.tickCount % TUNING.NET_SNAP_EVERY_TICKS === 0 || m.phase === 'matchEnd') this.sendSnap(m);
+    if (this.tickCount % TUNING.NET_SNAP_EVERY_TICKS === 0 || ended()) this.sendSnap(m);
     return events;
   }
 
