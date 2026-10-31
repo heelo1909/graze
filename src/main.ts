@@ -110,7 +110,7 @@ function react(events: SimEvent[], match: Match): void {
     endShown = true;
     input.releaseAll();
     if (matchWinJingle(matchWinner(match.totals, targetPoints(match.slots.length)), HUMAN)) audio.win();
-    showMatchEnd(ui, match, startMatch);
+    showMatchEnd(ui, match, startMatch, openTitle);
   }
 }
 

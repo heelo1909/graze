@@ -107,7 +107,7 @@ export function showTitle(
   play.focus();
 }
 
-export function showMatchEnd(root: HTMLElement, m: Match, onAgain: () => void): void {
+export function showMatchEnd(root: HTMLElement, m: Match, onAgain: () => void, onMenu: () => void): void {
   clearScreen(root);
   const w = matchWinner(m.totals, targetPoints(m.slots.length));
   const wrap = el('div', 'screen end');
@@ -130,7 +130,10 @@ export function showMatchEnd(root: HTMLElement, m: Match, onAgain: () => void): 
   const again = el('button', 'primary', 'Play Again');
   again.type = 'button';
   again.addEventListener('click', onAgain);
-  wrap.append(again);
+  const menu = el('button', 'ghost', 'Menu');
+  menu.type = 'button';
+  menu.addEventListener('click', onMenu);
+  wrap.append(again, menu);
   root.append(wrap);
   bindPrimary(again);
   again.focus();
