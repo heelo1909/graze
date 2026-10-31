@@ -2,6 +2,7 @@
 // Text is always set via textContent (the player's name is user input).
 import type { Difficulty } from '../bots/bot';
 import { matchWinner, targetPoints } from '../sim/scoring';
+import type { Players } from '../players';
 import type { Match } from '../sim/match';
 import { matchHeading } from './heading';
 
@@ -48,18 +49,20 @@ function bindPrimary(primary: HTMLButtonElement): void {
 
 export function showTitle(
   root: HTMLElement,
-  opts: { onPlay(cfg: { name: string; difficulty: Difficulty }): void; muted: boolean; onMute(m: boolean): void },
+  opts: { onPlay(cfg: { name: string; difficulty: Difficulty; players: Players }): void; muted: boolean; onMute(m: boolean): void },
 ): void {
   clearScreen(root);
   const saved = loadPref('difficulty');
   let difficulty: Difficulty = DIFFS.some((d) => d.id === saved) ? (saved as Difficulty) : 'normal';
   let muted = opts.muted;
+  let players: Players = loadPref('players') === '2' ? 2 : 1;
 
   const wrap = el('div', 'screen title');
   wrap.append(el('h1', 'logo', 'GRAZE'), el('p', 'pitch', 'Skim past trails to boost. Cut your rivals off. Last car glowing wins.'));
 
   const label = el('label', 'field');
-  label.append(el('span', 'field-label', 'Your name'));
+  const nameLabel = el('span', 'field-label');
+  label.append(nameLabel);
   const input = el('input');
   input.type = 'text';
   input.maxLength = NAME_MAX;
@@ -78,7 +81,23 @@ export function showTitle(
     diffGroup.append(b);
     return { b, id: d.id };
   });
-  const paint = (): void => diffBtns.forEach(({ b, id }) => b.setAttribute('aria-pressed', String(id === difficulty)));
+  const playGroup = el('div', 'seg');
+  playGroup.setAttribute('role', 'group');
+  playGroup.setAttribute('aria-label', 'Players');
+  const playBtns = ([1, 2] as const).map((n) => {
+    const b = el('button', 'seg-btn', n === 1 ? '1 Player' : '2 Players');
+    b.type = 'button';
+    b.addEventListener('click', () => { players = n; paint(); });
+    playGroup.append(b);
+    return { b, n };
+  });
+  const keys = el('p', 'keys');
+  const paint = (): void => {
+    diffBtns.forEach(({ b, id }) => b.setAttribute('aria-pressed', String(id === difficulty)));
+    playBtns.forEach(({ b, n }) => b.setAttribute('aria-pressed', String(n === players)));
+    nameLabel.textContent = players === 2 ? 'P1 name' : 'Your name';
+    keys.textContent = players === 2 ? 'P1: A D   ·   P2: ← →' : '← →  or  A D  to steer';
+  };
   paint();
 
   const mute = el('button', 'ghost');
@@ -90,18 +109,21 @@ export function showTitle(
   paintMute();
   mute.addEventListener('click', () => { muted = !muted; paintMute(); opts.onMute(muted); });
 
-  const play = el('button', 'primary', 'Play vs Bots');
+  const play = el('button', 'primary', 'Play');
   play.type = 'button';
   const go = (): void => {
-    const name = input.value.trim().slice(0, NAME_MAX) || 'You';
-    savePref('name', name);
+    const typed = input.value.trim().slice(0, NAME_MAX) || 'You';
+    savePref('name', typed);
+    // The default "You" would read as "YOU" on a shared screen, so P1 falls back to "P1".
+    const name = players === 2 && typed === 'You' ? 'P1' : typed;
     savePref('difficulty', difficulty);
-    opts.onPlay({ name, difficulty });
+    savePref('players', String(players));
+    opts.onPlay({ name, difficulty, players });
   };
   play.addEventListener('click', go);
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
 
-  wrap.append(label, diffGroup, play, mute, el('p', 'keys', '← →  or  A D  to steer'));
+  wrap.append(label, playGroup, diffGroup, play, mute, keys);
   root.append(wrap);
   bindPrimary(play);
   play.focus();

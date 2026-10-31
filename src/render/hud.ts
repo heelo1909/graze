@@ -4,6 +4,7 @@ import { TUNING } from '../config';
 import { targetPoints } from '../sim/scoring';
 import type { Match } from '../sim/match';
 import type { SimEvent } from '../sim/types';
+import { hintText } from '../players';
 import { BODY_FONT, DISPLAY_FONT, font, glowText, type TextLine } from './glow';
 import type { View } from './viewport';
 
@@ -14,7 +15,6 @@ interface TextImg { canvas: HTMLCanvasElement; w: number; h: number }
 const BANNER_S = 2;
 const FEED_S = 3.5;
 const FEED_MAX = 4;
-const HINT = '←  →  steer   ·   hold to drift harder   ·   skim past trails to boost   ·   gaps let you slip through';
 
 /** The one car steered on this device, or -1 when there are none or several
  *  (then nobody is "YOU" and every crash goes to the feed). */
@@ -179,7 +179,7 @@ export class Hud {
     ctx.textAlign = 'center';
     ctx.font = font(500, 12, BODY_FONT);
     ctx.fillStyle = 'rgba(255,255,255,0.32)';
-    ctx.fillText(HINT, cx, sh - 16);
+    ctx.fillText(hintText(this.local.length >= 2 ? 2 : 1), cx, sh - 16);
 
     const my = v.oy + ah / 2;
     // the round-end / match-end titles take over the same space

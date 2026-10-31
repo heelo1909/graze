@@ -27,6 +27,7 @@ Two throwaway test versions came before this doc. Their code is in `../snare-spi
 **Goals**
 - Two controls only: steer left and steer right. Holding a direction slides harder. No other buttons during play.
 - Online multiplayer for 2–4 players via a short room code, with bots filling the empty spots, plus solo play against bots.
+- Same-keyboard 2-player mode: P1 steers with A/D, P2 with ←/→, and two bots fill the other seats (added at the user's request, 2026-10-31).
 - Graphics that look clean and polished but run smoothly on a MacBook Air M4 in Chrome and Safari.
 - Short rounds (about 20–40 seconds) and matches of about 3–5 minutes.
 
@@ -141,7 +142,7 @@ Keep this from the test versions, since it's the moment that gets people yelling
 - **Sound:** short generated sounds (no audio files needed): a graze tone that rises with boost, crash, countdown ticks, round win. Add one mute toggle on the title screen. Sound starts after the first click or key press.
 
 ## 8. Screens and flow
-1. **Title:** the name, a one-line pitch, buttons for Play vs Bots, Create Room and Join Room, a name field (saved in the browser), and the mute toggle.
+1. **Title:** the name, a one-line pitch, a 1 Player / 2 Players switch (same keyboard), buttons for Play vs Bots, Create Room and Join Room, a name field (saved in the browser), and the mute toggle.
 2. **Lobby (online):** room code in large text with a copy button, the list of players, a bots on/off and difficulty setting (host only), and Start (host only).
 3. **Game:** player names with points along the top, the round number, your boost bar, the crash feed, and a reminder of the controls at the bottom. Nothing else.
 4. **Round end:** the order players went out and points earned, about 2.5 s, then the next round.
