@@ -1,15 +1,15 @@
-// Draws a Match: stored trail layer, downscaled-canvas bloom, cars, walls, fx and HUD.
+// Draws a Match: stored trail layer, cars, walls, fx and HUD. Flat and minimal: no bloom.
 // Driven only by Match state and SimEvents; never changes time or game state.
 import { TUNING } from '../config';
 import type { Match } from '../sim/match';
 import type { Car, SimEvent, World } from '../sim/types';
-import { darken, hexA, lighten } from './color';
+import { darken, lighten } from './color';
 import { DebugLayer } from './debug';
 import { Fx } from './fx';
 import { BODY_FONT, DISPLAY_FONT, ctx2d, makeCanvas } from './glow';
 import { Hud, announce, humanId } from './hud';
 import {
-  HISTORY, buildBase, buildVignette, drawAfterimage, drawCar, drawCarGlows, drawWalls, wallHeat,
+  HISTORY, buildBase, buildVignette, drawAfterimage, drawCar, drawWalls, wallHeat,
 } from './scene';
 import { HUD_BOTTOM, HUD_TOP, fitArena, type View } from './viewport';
 
@@ -17,11 +17,10 @@ const W = TUNING.ARENA_W;
 const H = TUNING.ARENA_H;
 /** Trail layer resolution relative to arena units. */
 const TS = 2;
-/** Trail passes (arena units). The core + mid pass span ~the collision width (CELL plus-stamp, ~6 units). */
+/** Trail passes (arena units): a faint edge the width of the collision zone (~6 units) and a solid core. */
 const TRAIL_PASSES = [
-  { width: 12, alpha: 0.07, light: 0 },
-  { width: 5.5, alpha: 0.3, light: 0 },
-  { width: 2.4, alpha: 1, light: 0.55 },
+  { width: 5.5, alpha: 0.18, light: 0 },
+  { width: 2.4, alpha: 1, light: 0 },
 ] as const;
 const HISTORY_EVERY_S = 1 / 40;
 const FADE_S = 0.4;
@@ -36,8 +35,6 @@ export class Renderer {
   private readonly tctx = ctx2d(this.trail);
   private readonly vignette = buildVignette();
   private base = makeCanvas(1, 1);
-  private bloomQ = makeCanvas(1, 1);
-  private bloomE = makeCanvas(1, 1);
   private dpr = 1;
   private sw = 1;
   private sh = 1;
@@ -82,8 +79,6 @@ export class Renderer {
     this.canvas.style.height = `${this.sh}px`;
     this.view = fitArena(this.sw, this.sh, HUD_TOP, HUD_BOTTOM);
     this.base = buildBase(this.sw, this.sh, this.dpr, this.view);
-    this.bloomQ = makeCanvas(this.canvas.width / 4, this.canvas.height / 4);
-    this.bloomE = makeCanvas(this.canvas.width / 8, this.canvas.height / 8);
     this.hud.dpr = this.dpr;
     this.hud.resetTextCache();
   }
@@ -146,7 +141,7 @@ export class Renderer {
     g.globalCompositeOperation = 'lighten';
     g.lineCap = 'round';
     for (const p of TRAIL_PASSES) {
-      g.strokeStyle = p.light > 0 ? lighten(color, p.light) : darken(color, p.alpha);
+      g.strokeStyle = darken(color, p.alpha);
       g.lineWidth = p.width;
       g.stroke(path);
     }
@@ -156,9 +151,8 @@ export class Renderer {
   private crash(e: Extract<SimEvent, { type: 'crash' }>, m: Match): void {
     const color = this.colors[e.car] ?? '#ffffff';
     this.fx.shards(e.x, e.y, color);
-    this.fx.burst(e.x, e.y, color, 40, 320);
-    this.fx.burst(e.x, e.y, '#ffffff', 12, 200);
-    this.fx.ring(e.x, e.y, 110, color, 0.55);
+    this.fx.burst(e.x, e.y, color, 14, 260);
+    this.fx.ring(e.x, e.y, 70, color, 0.45);
     if (e.cause === 'trail' && e.by !== null) this.fx.tether(e.x, e.y, e.by, 1.6);
 
     const a = announce(e, m);
@@ -211,16 +205,12 @@ export class Renderer {
     for (const c of cars) {
       if (c.alive) drawAfterimage(ctx, c, this.hist[c.id]!, this.histN[c.id]!, this.histHead[c.id]!);
     }
-    ctx.globalCompositeOperation = 'lighter';
-    drawCarGlows(ctx, cars, 70, 0.3);
-    ctx.globalCompositeOperation = 'source-over';
     this.fx.draw(ctx, cars);
     const me = humanId(m);
     for (const c of cars) {
       if (c.alive) drawCar(ctx, c, c.id === me ? 'YOU' : c.name, m.phase === 'countdown');
     }
 
-    this.bloom(k / 4, tx / 4, ty / 4, w, cars, heat);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(this.vignette, 0, 0, this.canvas.width, this.canvas.height);
 
@@ -239,42 +229,6 @@ export class Renderer {
       this.debug.drawStats(ctx, w, this.fx.count);
       this.debug.record(interval, performance.now() - t0);
     }
-  }
-
-  /** Bright parts → ¼-size canvas → ⅛-size canvas, both added back with 'lighter'. */
-  private bloom(k: number, tx: number, ty: number, w: World, cars: Car[], heat: number): void {
-    const q = ctx2d(this.bloomQ);
-    const e = ctx2d(this.bloomE);
-    q.setTransform(1, 0, 0, 1, 0, 0);
-    q.globalCompositeOperation = 'source-over';
-    q.clearRect(0, 0, this.bloomQ.width, this.bloomQ.height);
-    q.setTransform(k, 0, 0, k, tx, ty);
-    q.globalCompositeOperation = 'lighter';
-    q.drawImage(this.trail, 0, 0, W, H);
-    drawCarGlows(q, cars, 40, 0.8);
-    if (heat > 0) {
-      const b = w.bounds;
-      q.strokeStyle = hexA('#ff3d6e', 0.8 * heat);
-      q.lineWidth = 4;
-      q.strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
-    }
-    q.globalCompositeOperation = 'source-over';
-    this.fx.draw(q, cars);
-    e.setTransform(1, 0, 0, 1, 0, 0);
-    e.clearRect(0, 0, this.bloomE.width, this.bloomE.height);
-    e.imageSmoothingEnabled = true;
-    e.drawImage(this.bloomQ, 0, 0, this.bloomE.width, this.bloomE.height);
-
-    const ctx = this.ctx;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.imageSmoothingEnabled = true;
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = 0.45;
-    ctx.drawImage(this.bloomQ, 0, 0, this.canvas.width, this.canvas.height);
-    ctx.globalAlpha = 0.7;
-    ctx.drawImage(this.bloomE, 0, 0, this.canvas.width, this.canvas.height);
-    ctx.globalAlpha = 1;
-    ctx.globalCompositeOperation = 'source-over';
   }
 
   /** Afterimage samples and drift sparks (visual only, derived from car state). */

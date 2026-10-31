@@ -3,8 +3,8 @@
 import { TUNING } from '../config';
 import { shrinkWarning } from '../sim/arena';
 import type { Car, World } from '../sim/types';
-import { hexA, lighten } from './color';
-import { BODY_FONT, ctx2d, font, glowSprite, makeCanvas } from './glow';
+import { hexA } from './color';
+import { BODY_FONT, ctx2d, font, makeCanvas } from './glow';
 import type { View } from './viewport';
 
 const W = TUNING.ARENA_W;
@@ -81,27 +81,13 @@ export function drawWalls(ctx: CanvasRenderingContext2D, w: World, heat: number)
     ctx.fill('evenodd');
   }
   if (heat > 0) {
-    ctx.strokeStyle = hexA(WARN, 0.1 * heat);
-    ctx.lineWidth = 12;
-    ctx.strokeRect(b.left, b.top, bw, bh);
-    ctx.strokeStyle = hexA(WARN, 0.35 * heat);
+    ctx.strokeStyle = hexA(WARN, 0.3 * heat);
     ctx.lineWidth = 4;
     ctx.strokeRect(b.left, b.top, bw, bh);
   }
   ctx.strokeStyle = heat > 0 ? hexA('#ffc2d1', 0.4 + 0.6 * heat) : 'rgba(150,180,255,0.35)';
   ctx.lineWidth = 1.5;
   ctx.strokeRect(b.left, b.top, bw, bh);
-}
-
-/** Glow halo under each live car. Used on the main canvas and in the bloom pass. */
-export function drawCarGlows(ctx: CanvasRenderingContext2D, cars: Car[], size: number, alpha: number): void {
-  for (const c of cars) {
-    if (!c.alive) continue;
-    const s = size * (1 + c.boost * 0.5);
-    ctx.globalAlpha = alpha * (1 + c.boost * 0.6);
-    ctx.drawImage(glowSprite(c.color), c.x - s / 2, c.y - s / 2, s, s);
-  }
-  ctx.globalAlpha = 1;
 }
 
 function bodyPath(ctx: CanvasRenderingContext2D, x: number, y: number, h: number): void {
@@ -124,7 +110,7 @@ export function drawAfterimage(ctx: CanvasRenderingContext2D, c: Car, hist: Floa
   ctx.lineWidth = 1;
   for (let k = 0; k < n; k++) {
     const i = ((head - n + k + HISTORY) % HISTORY) * 3;
-    ctx.globalAlpha = 0.28 * ((k + 1) / (n + 1));
+    ctx.globalAlpha = 0.12 * ((k + 1) / (n + 1));
     bodyPath(ctx, hist[i]!, hist[i + 1]!, hist[i + 2]!);
     ctx.stroke();
   }
@@ -158,7 +144,7 @@ export function drawCar(ctx: CanvasRenderingContext2D, c: Car, label: string, co
     ctx.stroke();
   }
   bodyPath(ctx, c.x, c.y, c.heading);
-  ctx.fillStyle = lighten(c.color, 0.6);
+  ctx.fillStyle = c.color;
   ctx.fill();
   ctx.strokeStyle = c.color;
   ctx.lineWidth = 1.2;
