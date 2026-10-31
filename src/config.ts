@@ -2,6 +2,7 @@ export const TUNING = Object.freeze({
   ARENA_W: 1200,
   ARENA_H: 760,
   NET_MAX_CARS: 4,
+  NET_SNAP_EVERY_TICKS: 2,
   BASE_SPEED: 185,
   BOOST_MAX: 0.6,
   TURN_MIN: 2.0,

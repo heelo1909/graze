@@ -118,10 +118,13 @@ describe('host lobby', () => {
   });
 
   test('duplicate hello does not take a second seat', async () => {
-    const { session, join } = await setup();
+    const { hub, session, join } = await setup();
     const a = await join('a');
     a.link.send({ t: 'hello', name: 'again' });
+    hub.flush();
     expect(session.seats).toHaveLength(2);
+    expect(session.seats[1]!.name).toBe('a');
+    expect(lastLobby(a)?.you).toBe(1);
   });
 
   test('guards validate untrusted input', () => {
