@@ -3,6 +3,7 @@
 import type { Difficulty } from '../bots/bot';
 import { matchWinner, targetPoints } from '../sim/scoring';
 import type { Match } from '../sim/match';
+import { matchHeading } from './heading';
 
 export const NAME_MAX = 12;
 const DIFFS: { id: Difficulty; label: string }[] = [
@@ -110,7 +111,7 @@ export function showMatchEnd(root: HTMLElement, m: Match, onAgain: () => void): 
   clearScreen(root);
   const w = matchWinner(m.totals, targetPoints(m.slots.length));
   const wrap = el('div', 'screen end');
-  const head = el('h2', 'winner', w === null ? 'Match over' : `${m.slots[w]?.name ?? '?'} wins`);
+  const head = el('h2', 'winner', matchHeading(m.slots, w));
   if (w !== null) head.style.setProperty('--c', m.slots[w]?.color ?? '#fff');
   wrap.append(head);
 

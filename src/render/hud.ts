@@ -204,7 +204,7 @@ export class Hud {
     } else if (m.phase === 'roundEnd') {
       this.drawRoundEnd(ctx, m, cx, my, me);
     } else if (m.phase === 'matchEnd') {
-      this.drawMatchEnd(ctx, m, cx, sw, sh, me);
+      this.drawMatchEnd(ctx, m, sw, sh);
     }
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
@@ -255,25 +255,10 @@ export class Hud {
     ctx.globalAlpha = 1;
   }
 
-  private drawMatchEnd(ctx: CanvasRenderingContext2D, m: Match, cx: number, sw: number, sh: number, me: number): void {
+  /** The DOM match-end screen owns the heading and standings; the canvas only dims behind it. */
+  private drawMatchEnd(ctx: CanvasRenderingContext2D, m: Match, sw: number, sh: number): void {
     ctx.fillStyle = `rgba(4,5,10,${Math.min(0.75, 0.5 + m.phaseTime * 2)})`;
     ctx.fillRect(0, 0, sw, sh);
-    const ranked = m.slots.map((s, id) => ({ s, id, pts: m.totals[id] ?? 0 })).sort((p, q) => q.pts - p.pts);
-    const top = ranked[0];
-    if (!top) return;
-    const title = top.id === me ? 'YOU WIN' : `${top.s.name.toUpperCase()} WINS`;
-    this.glow(ctx, `me|${title}|${top.s.color}`, [{ text: title, font: font(800, 62, DISPLAY_FONT), color: top.s.color, dy: 0, glow: true }], cx, sh * 0.28, 1);
-    ranked.forEach((r, i) => {
-      const y = sh * 0.28 + 90 + i * 40;
-      ctx.textAlign = 'right';
-      ctx.font = font(700, 20, DISPLAY_FONT);
-      ctx.fillStyle = r.s.color;
-      ctx.fillText(`${i + 1}.  ${r.id === me ? 'YOU' : r.s.name.toUpperCase()}`, cx + 10, y);
-      ctx.textAlign = 'left';
-      ctx.font = font(800, 20, BODY_FONT);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(`${r.pts}`, cx + 30, y);
-    });
   }
 
   private glow(ctx: CanvasRenderingContext2D, key: string, lines: TextLine[], x: number, y: number, s: number): void {
