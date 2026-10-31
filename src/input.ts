@@ -1,9 +1,15 @@
-// Keyboard steering: ←/A and →/D. Window-level listeners; everything is released on blur
+// Keyboard steering: ←/A and →/D, or one key pair per player in 2-player mode. Window-level listeners; everything is released on blur
 // and when the tab is hidden so a key can never stay stuck.
 import type { Steer } from './sim/types';
 
-const LEFT = ['ArrowLeft', 'KeyA'];
-const RIGHT = ['ArrowRight', 'KeyD'];
+/** Which keys steer: both pairs (solo), only A/D (P1) or only the arrows (P2). */
+export type Scheme = 'both' | 'ad' | 'arrows';
+
+const KEYS: Record<Scheme, { left: string[]; right: string[] }> = {
+  both: { left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'] },
+  ad: { left: ['KeyA'], right: ['KeyD'] },
+  arrows: { left: ['ArrowLeft'], right: ['ArrowRight'] },
+};
 const BLOCKED = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'];
 
 function inField(e: KeyboardEvent): boolean {
@@ -22,9 +28,10 @@ export class Input {
     target.document.addEventListener('visibilitychange', this.onVisibility);
   }
 
-  steer(): Steer {
-    const l = LEFT.some((k) => this.down.has(k));
-    const r = RIGHT.some((k) => this.down.has(k));
+  steer(scheme: Scheme = 'both'): Steer {
+    const { left, right } = KEYS[scheme];
+    const l = left.some((k) => this.down.has(k));
+    const r = right.some((k) => this.down.has(k));
     return l === r ? 0 : l ? -1 : 1;
   }
 
