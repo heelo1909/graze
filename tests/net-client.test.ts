@@ -3,6 +3,7 @@ import { LoopbackHub } from '../src/net/loopback';
 import { HostSession } from '../src/net/host';
 import { ClientSession } from '../src/net/client';
 import { DT } from '../src/config';
+import { createWorld } from '../src/sim/world';
 
 async function setup() {
   const hub = new LoopbackHub();
@@ -87,5 +88,41 @@ describe('ClientSession', () => {
     link.send = (m) => { sent.push(m); orig(m); };
     s.client.sendSteer(1); s.client.sendSteer(1); s.client.sendSteer(-1);
     expect(sent).toEqual([{ t: 'steer', s: 1 }, { t: 'steer', s: -1 }]);
+  });
+
+  test('delayed delivery keeps own car responsive', async () => {
+    const s = await setup();
+    s.host.start(5);
+    s.hub.flush();
+    let t = run(s, 3.2);
+    expect(s.host.match!.phase).toBe('play');
+    s.hub.flush();
+    for (let i = 0; i < 40; i++) {
+      t += DT;
+      s.clock(t);
+      s.client.sendSteer(1);
+      s.client.stepLocal(1);
+      s.host.step(0);
+      if (i % 6 === 5) s.hub.flush();
+    }
+    const mine = s.client.cars(t)[s.client.you]!;
+    const hostCar = s.host.match!.world.cars[s.client.you]!;
+    expect(hostCar.alive).toBe(true);
+    expect(mine.heading).toBeGreaterThanOrEqual(hostCar.heading);
+    expect(mine.heading).toBeGreaterThan(0.5);
+  });
+
+  test('round swap clears the buffer', async () => {
+    const s = await setup();
+    s.host.start(3);
+    s.hub.flush();
+    let t = 0;
+    for (let i = 0; i < 60 * 120 && s.host.match!.round === 1; i++) t = run(s, DT, t);
+    run(s, DT * 2, t);
+    expect(s.client.match!.round).toBe(2);
+    const spawn = createWorld(s.client.match!.slots, 3 + 2).cars[0]!;
+    const c = s.client.cars(t + 0.05)[0]!;
+    expect(c.x).toBeCloseTo(spawn.x, 3);
+    expect(c.y).toBeCloseTo(spawn.y, 3);
   });
 });

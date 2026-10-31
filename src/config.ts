@@ -7,6 +7,7 @@ export const TUNING = Object.freeze({
   NET_STALE_S: 2,
   NET_SNAP_DIST: 40,
   NET_SMOOTH_S: 0.1,
+  NET_PREDICT_HISTORY_S: 0.5,
   BASE_SPEED: 185,
   BOOST_MAX: 0.6,
   TURN_MIN: 2.0,

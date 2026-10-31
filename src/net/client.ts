@@ -148,6 +148,7 @@ export class ClientSession {
     if (!m) return;
     if (s.round !== m.round) {
       m.world = createWorld(m.slots, m.seed + s.round);
+      this.buf.clear();
       this.predictor.reset(m.world.cars[this.you] ?? this.predictor.car);
     }
     m.phase = s.phase;
