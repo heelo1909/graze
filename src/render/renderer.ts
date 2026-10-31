@@ -2,7 +2,7 @@
 // Driven only by Match state and SimEvents; never changes time or game state.
 import { TUNING } from '../config';
 import type { Match } from '../sim/match';
-import type { SimEvent, World } from '../sim/types';
+import type { Car, SimEvent, World } from '../sim/types';
 import { darken, hexA, lighten } from './color';
 import { DebugLayer } from './debug';
 import { Fx } from './fx';
@@ -168,7 +168,8 @@ export class Renderer {
     else if (a?.kind === 'feed') this.hud.feed(a.parts);
   }
 
-  draw(m: Match, realTime: number): void {
+  /** `cars` are the poses to draw (interpolated by main.ts); defaults to the live sim cars. */
+  draw(m: Match, realTime: number, cars: Car[] = m.world.cars): void {
     const t0 = performance.now();
     this.sync(m);
     const w = m.world;
@@ -207,19 +208,19 @@ export class Renderer {
     ctx.drawImage(this.trail, 0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
     drawWalls(ctx, w, heat);
-    for (const c of w.cars) {
+    for (const c of cars) {
       if (c.alive) drawAfterimage(ctx, c, this.hist[c.id]!, this.histN[c.id]!, this.histHead[c.id]!);
     }
     ctx.globalCompositeOperation = 'lighter';
-    drawCarGlows(ctx, w.cars, 70, 0.3);
+    drawCarGlows(ctx, cars, 70, 0.3);
     ctx.globalCompositeOperation = 'source-over';
-    this.fx.draw(ctx, w.cars);
+    this.fx.draw(ctx, cars);
     const me = humanId(m);
-    for (const c of w.cars) {
+    for (const c of cars) {
       if (c.alive) drawCar(ctx, c, c.id === me ? 'YOU' : c.name, m.phase === 'countdown');
     }
 
-    this.bloom(k / 4, tx / 4, ty / 4, w, heat);
+    this.bloom(k / 4, tx / 4, ty / 4, w, cars, heat);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(this.vignette, 0, 0, this.canvas.width, this.canvas.height);
 
@@ -230,7 +231,7 @@ export class Renderer {
     }
     if (this.debug.enabled) {
       ctx.setTransform(k, 0, 0, k, tx, ty);
-      this.debug.drawArena(ctx, w);
+      this.debug.drawArena(ctx, w, cars);
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.hud.draw(ctx, m, v);
@@ -241,7 +242,7 @@ export class Renderer {
   }
 
   /** Bright parts → ¼-size canvas → ⅛-size canvas, both added back with 'lighter'. */
-  private bloom(k: number, tx: number, ty: number, w: World, heat: number): void {
+  private bloom(k: number, tx: number, ty: number, w: World, cars: Car[], heat: number): void {
     const q = ctx2d(this.bloomQ);
     const e = ctx2d(this.bloomE);
     q.setTransform(1, 0, 0, 1, 0, 0);
@@ -250,7 +251,7 @@ export class Renderer {
     q.setTransform(k, 0, 0, k, tx, ty);
     q.globalCompositeOperation = 'lighter';
     q.drawImage(this.trail, 0, 0, W, H);
-    drawCarGlows(q, w.cars, 40, 0.8);
+    drawCarGlows(q, cars, 40, 0.8);
     if (heat > 0) {
       const b = w.bounds;
       q.strokeStyle = hexA('#ff3d6e', 0.8 * heat);
@@ -258,7 +259,7 @@ export class Renderer {
       q.strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
     }
     q.globalCompositeOperation = 'source-over';
-    this.fx.draw(q, w.cars);
+    this.fx.draw(q, cars);
     e.setTransform(1, 0, 0, 1, 0, 0);
     e.clearRect(0, 0, this.bloomE.width, this.bloomE.height);
     e.imageSmoothingEnabled = true;

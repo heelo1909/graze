@@ -5,6 +5,7 @@ import { botSteer, newBotMemory, type BotMemory, type Difficulty } from './bots/
 import { DT, TUNING } from './config';
 import { Input } from './input';
 import { matchWinJingle, roundWinJingle, stepsFor, triggersSlowmo } from './loop';
+import { CarInterp, renderAlpha } from './render/interp';
 import { Renderer } from './render/renderer';
 import { createMatch, stepMatch, type Match } from './sim/match';
 import { matchWinner, targetPoints } from './sim/scoring';
@@ -33,6 +34,7 @@ let cfg: { name: string; difficulty: Difficulty } = { name: 'You', difficulty: '
 let m: Match | null = null;
 let mem: BotMemory[] = [];
 let acc = 0;
+const interp = new CarInterp();
 let last = performance.now();
 let slowLeft = 0;
 let prevPhase = '';
@@ -53,7 +55,7 @@ function startMatch(): void {
   ];
   m = createMatch(slots, Date.now() % 100000);
   mem = slots.map(() => newBotMemory());
-  acc = 0;
+  acc = DT / 2; // start mid-step so the first frames are not a half-step behind
   slowLeft = 0;
   prevPhase = '';
   tickShown = -1;
@@ -79,6 +81,7 @@ function step(): void {
     if (i === HUMAN) return steerOverride ?? input.steer();
     return car.alive ? botSteer(match.world, i, mem[i]!, cfg.difficulty) : 0;
   });
+  interp.snapshot(match.world);
   const events = stepMatch(match, steers);
   renderer.onEvents(events, match);
   react(events, match);
@@ -124,7 +127,7 @@ function frame(now: number): void {
     const r = stepsFor(acc, frameDt * scale);
     acc = r.rest;
     for (let i = 0; i < r.steps; i++) step();
-    renderer.draw(m, now / 1000);
+    renderer.draw(m, now / 1000, interp.cars(m.world, renderAlpha(acc)));
   }
   requestAnimationFrame(frame);
 }

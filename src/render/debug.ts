@@ -3,7 +3,7 @@
 // so the 228k-cell grid is only scanned once (when the overlay is switched on).
 import { TUNING } from '../config';
 import type { Grid } from '../sim/grid';
-import type { SimEvent, World } from '../sim/types';
+import type { Car, SimEvent, World } from '../sim/types';
 import { ctx2d, font, makeCanvas } from './glow';
 
 const COLS = Math.ceil(TUNING.ARENA_W / TUNING.CELL);
@@ -57,7 +57,7 @@ export class DebugLayer {
   }
 
   /** Arena-space layer. Call with the arena transform set. */
-  drawArena(ctx: CanvasRenderingContext2D, w: World): void {
+  drawArena(ctx: CanvasRenderingContext2D, w: World, cars: Car[] = w.cars): void {
     ctx.save();
     ctx.globalAlpha = 0.55;
     ctx.imageSmoothingEnabled = false;
@@ -70,7 +70,7 @@ export class DebugLayer {
     ctx.setLineDash([6, 4]);
     ctx.strokeRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
     ctx.setLineDash([]);
-    for (const c of w.cars) {
+    for (const c of cars) {
       if (!c.alive) continue;
       const m = Math.hypot(c.vx, c.vy) || 1;
       ctx.fillStyle = '#ffffff';
