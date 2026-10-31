@@ -8,8 +8,12 @@ export class Grid {
   private readonly owner: Int8Array;
   private readonly time: Float32Array;
 
-  constructor(w: number, h: number, cell: number) {
+  private readonly radius: number;
+
+  /** radius = stamp half-width in cells (1 = 3x3 block, 0 = single cell). */
+  constructor(w: number, h: number, cell: number, radius = 1) {
     this.cell = cell;
+    this.radius = radius;
     this.cols = Math.ceil(w / cell);
     this.rows = Math.ceil(h / cell);
     this.owner = new Int8Array(this.cols * this.rows);
@@ -22,12 +26,13 @@ export class Grid {
     this.time.fill(0);
   }
 
-  // Marks the 3x3 block of cells around (x, y). Occupied cells are left untouched.
+  // Marks the (2r+1)^2 block of cells around (x, y). Occupied cells are left untouched.
   stamp(x: number, y: number, owner: number, time: number): void {
     const cx = Math.floor(x / this.cell);
     const cy = Math.floor(y / this.cell);
-    for (let dy = -1; dy <= 1; dy++) {
-      for (let dx = -1; dx <= 1; dx++) {
+    const r = this.radius;
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
         const col = cx + dx;
         const row = cy + dy;
         if (col < 0 || row < 0 || col >= this.cols || row >= this.rows) continue;

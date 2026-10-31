@@ -31,7 +31,7 @@ export function createWorld(slots: Slot[], seed: number): World {
   });
   return {
     tick: 0, time: 0, cars,
-    grid: new Grid(TUNING.ARENA_W, TUNING.ARENA_H, TUNING.CELL),
+    grid: new Grid(TUNING.ARENA_W, TUNING.ARENA_H, TUNING.CELL, TUNING.TRAIL_STAMP_RADIUS),
     bounds: boundsAt(0), rng,
     winner: undefined, endTimer: 0, over: false,
     outOrder: [], cutoffs: [],

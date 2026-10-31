@@ -27,22 +27,25 @@ function edgeHugger(w: World, id: number): Steer {
   return d > 0.05 ? 1 : d < -0.05 ? -1 : 0;
 }
 
-interface Result { time: number; winner: number | null }
+interface Result { time: number; winner: number | null; graze: number; carTicks: number }
 
 function playRound(seed: number, hugger: boolean): Result {
   const w = createWorld(slots, seed);
   const mem: BotMemory[] = slots.map(() => newBotMemory());
   const steers: Steer[] = [0, 0, 0, 0];
   let guard = 0;
+  let graze = 0;
+  let carTicks = 0;
   while (!w.over) {
     for (const c of w.cars) {
       if (!c.alive) { steers[c.id] = 0; continue; }
       steers[c.id] = hugger && c.id === 0 ? edgeHugger(w, 0) : botSteer(w, c.id, mem[c.id]!, 'normal');
     }
     stepWorld(w, steers);
+    for (const c of w.cars) if (c.alive) { carTicks++; if (c.grazing) graze++; }
     if (++guard > 60 * 300) throw new Error(`round ${seed} did not end`);
   }
-  return { time: w.time, winner: w.winner ?? null };
+  return { time: w.time, winner: w.winner ?? null, graze, carTicks };
 }
 
 describe('balance (headless)', () => {
@@ -51,11 +54,11 @@ describe('balance (headless)', () => {
   }, 60_000);
 
   test('average round length is between 20 and 40 seconds (normal bots)', () => {
-    let sum = 0;
+    let sum = 0, gz = 0, ct = 0;
     const n = 100;
-    for (let s = 1; s <= n; s++) sum += playRound(s, false).time;
+    for (let s = 1; s <= n; s++) { const r = playRound(s, false); sum += r.time; gz += r.graze; ct += r.carTicks; }
     const mean = sum / n;
-    console.log(`mean round length ${mean.toFixed(2)}s`);
+    console.log(`mean round length ${mean.toFixed(2)}s, graze ${(100 * gz / ct).toFixed(1)}% of car-ticks`);
     expect(mean).toBeGreaterThanOrEqual(20);
     expect(mean).toBeLessThanOrEqual(40);
   }, 60_000);

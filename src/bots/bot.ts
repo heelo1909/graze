@@ -18,14 +18,14 @@ export function newBotMemory(): BotMemory {
   return { timer: 0, steer: 0 };
 }
 
-const SIM_DT = 1 / 30;
+const SIM_DT = 1 / 60;
 const TICK = 1 / 60;
 const NOSE = 9;
 const RIVAL_CLEAR = 14;
 const RIVAL_STEP = 0.06;
 const SIDE_W = 0.5;
 const SIDE_ANGLE = 0.7;
-const RAY_STEP = 8;
+const RAY_STEP = 3;
 const TAU = Math.PI * 2;
 
 const normAngle = (a: number): number => {
