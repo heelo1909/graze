@@ -69,6 +69,9 @@ function openTitle(): void {
     muted: loadPref('muted') === '1',
     onMute: (v) => { audio.setMuted(v); savePref('muted', v ? '1' : '0'); },
     onPlay: (c) => { cfg = c; audio.unlock(); startMatch(); },
+    // Wired to networking in the next task.
+    onCreate: () => {},
+    onJoin: () => {},
   });
 }
 
