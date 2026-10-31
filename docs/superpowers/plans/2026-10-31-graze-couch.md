@@ -133,7 +133,10 @@
 - [ ] **Step 5:** Update the docs:
   - In `sections.md` §2 Goals, add: "Same-keyboard 2-player mode (P1 A/D, P2 ←/→, two bots), added at the user's request 2026-10-31."
   - In `sections.md` §8 Title, add the Players toggle.
-  - In the `CLAUDE.md` Controls rule, add the 2P keys.
+  - In `CLAUDE.md`:
+    - Add the 2P keys to the Controls rule.
+    - Point "Current plan" at this plan (milestone 2a). Online room codes are 2b.
+    - In the perf rule, drop "downscaled-canvas bloom". It was removed in e172c5d, and the look is now flat.
 - [ ] **Step 6:** Run `npm test && npm run build && npm run sim -- --rounds 100 --seed 1`. Expected:
   - All tests pass.
   - The build passes.
