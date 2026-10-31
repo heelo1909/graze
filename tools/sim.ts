@@ -1,5 +1,5 @@
-// Headless balance harness: npm run sim -- [--rounds N] [--seed S] [--camper]
-import { playRound, tunnelCheck } from '../src/sim/harness';
+// Headless balance harness: npm run sim -- [--rounds N] [--matches N] [--seed S] [--camper]
+import { playMatch, playRound, tunnelCheck } from '../src/sim/harness';
 
 declare const process: { argv: string[] };
 const args = process.argv.slice(2);
@@ -10,6 +10,7 @@ const num = (flag: string, dflt: number): number => {
 };
 const rounds = num('--rounds', 100);
 const seed0 = num('--seed', 1);
+const matchCount = num('--matches', 30);
 const camper = args.includes('--camper');
 
 const times: number[] = [];
@@ -33,3 +34,10 @@ console.log(`win rate: ${wins.map((x, i) => `car${i} ${(100 * x / rounds).toFixe
 console.log(`graze: ${(100 * graze / carTicks).toFixed(1)}% of car-ticks`);
 console.log(`tunnel check: ${tun.misses.length} of ${tun.total} crossings passed through a trail`);
 for (const m of tun.misses.slice(0, 5)) console.log(`  ${m}`);
+
+const ms = Array.from({ length: matchCount }, (_, i) => playMatch(seed0 + i));
+if (ms.length > 0) {
+  const mins = ms.map((r) => r.minutes);
+  const avg = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
+  console.log(`matches ${matchCount}: minutes mean ${avg(mins).toFixed(2)}  min ${Math.min(...mins).toFixed(2)}  max ${Math.max(...mins).toFixed(2)}  rounds/match mean ${avg(ms.map((r) => r.rounds)).toFixed(2)}`);
+}

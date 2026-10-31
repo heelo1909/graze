@@ -1,6 +1,8 @@
 // Headless simulation helpers shared by tests/balance.test.ts, tests/tunnel.test.ts and tools/sim.ts.
-import { TUNING } from '../config';
+import { DT, TUNING } from '../config';
 import { botSteer, newBotMemory, type BotMemory } from '../bots/bot';
+import { createMatch, stepMatch } from './match';
+import { matchWinner, targetPoints } from './scoring';
 import { createWorld, stepWorld } from './world';
 import type { Slot, Steer, World } from './types';
 
@@ -87,4 +89,20 @@ export function tunnelCheck(): { total: number; misses: string[] } {
     }
   }
   return { total, misses };
+}
+
+export interface MatchResult { minutes: number; rounds: number; winner: number | null }
+
+/** Plays a whole 4-bot match (normal difficulty) through stepMatch, including countdown and round-end pauses. */
+export function playMatch(seed: number): MatchResult {
+  const m = createMatch(SLOTS, seed);
+  const mem: BotMemory[] = SLOTS.map(() => newBotMemory());
+  let ticks = 0;
+  while (m.phase !== 'matchEnd') {
+    const steers: Steer[] = m.world.cars.map((c, i) =>
+      m.phase === 'play' && c.alive ? botSteer(m.world, i, mem[i]!, 'normal') : 0);
+    stepMatch(m, steers);
+    if (++ticks > 60 * 60 * 60) throw new Error(`match ${seed} did not end`);
+  }
+  return { minutes: ticks * DT / 60, rounds: m.round, winner: matchWinner(m.totals, targetPoints(SLOTS.length)) };
 }
