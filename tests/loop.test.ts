@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { stepsFor, triggersSlowmo } from '../src/loop';
+import { matchWinJingle, roundWinJingle, stepsFor, triggersSlowmo } from '../src/loop';
 import type { SimEvent } from '../src/sim/types';
 
 test('60Hz frame → 1 step', () => expect(stepsFor(0, 1 / 60).steps).toBe(1));
@@ -29,4 +29,16 @@ test('slow motion triggers on a crash involving the human as victim or trail own
   expect(triggersSlowmo([crash(1, 2)], 0)).toBe(false);
   expect(triggersSlowmo([crash(1, null)], 0)).toBe(false);
   expect(triggersSlowmo([crash(0, null)], -1)).toBe(false);
+});
+
+test('win jingle: once per match win, never twice', () => {
+  // round won, match still going -> play at round end
+  expect(roundWinJingle(0, 0, false)).toBe(true);
+  // round won and it decides the match -> wait for match end
+  expect(roundWinJingle(0, 0, true)).toBe(false);
+  expect(roundWinJingle(2, 0, false)).toBe(false);
+  expect(roundWinJingle(null, 0, false)).toBe(false);
+  expect(matchWinJingle(0, 0)).toBe(true);
+  expect(matchWinJingle(1, 0)).toBe(false);
+  expect(matchWinJingle(null, 0)).toBe(false);
 });

@@ -83,3 +83,11 @@ test('Cmd/Ctrl/Alt chords do not latch steering; Meta down releases held keys', 
   down('MetaLeft');
   expect(i.steer()).toBe(0);
 });
+
+test('Alt+Arrow is defaultPrevented (no browser Back/Forward) and does not steer', () => {
+  const i = make();
+  const e = new KeyboardEvent('keydown', { code: 'ArrowLeft', altKey: true, cancelable: true });
+  window.dispatchEvent(e);
+  expect(e.defaultPrevented).toBe(true);
+  expect(i.steer()).toBe(0);
+});

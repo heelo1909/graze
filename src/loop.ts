@@ -19,3 +19,14 @@ export function triggersSlowmo(events: SimEvent[], humanId: number): boolean {
   if (humanId < 0) return false;
   return events.some((e) => e.type === 'crash' && (e.car === humanId || e.by === humanId));
 }
+
+/** Win jingle at round end: only when the human won the round and it did not decide the match
+ *  (that win is celebrated once, at match end). */
+export function roundWinJingle(roundWinner: number | null, humanId: number, matchDecided: boolean): boolean {
+  return humanId >= 0 && roundWinner === humanId && !matchDecided;
+}
+
+/** Win jingle at match end: once, when the human is the match winner. */
+export function matchWinJingle(matchWinnerId: number | null, humanId: number): boolean {
+  return humanId >= 0 && matchWinnerId === humanId;
+}
