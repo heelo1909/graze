@@ -193,6 +193,9 @@ export class Renderer {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
+    // Clear first: with a shake offset, base no longer covers the canvas edges.
+    ctx.fillStyle = '#04050a';
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.drawImage(this.base, sx * dpr, sy * dpr);
     const k = dpr * v.scale;
     const tx = (v.ox + sx) * dpr;
