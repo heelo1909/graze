@@ -41,6 +41,9 @@ export class Input {
   private readonly onDown = (e: KeyboardEvent): void => {
     // Typing in a text field (the name box) must work normally and must not steer.
     if (inField(e)) return;
+    // macOS sends no keyup for a non-modifier key while Cmd is down, so a chord would latch.
+    if (e.code === 'MetaLeft' || e.code === 'MetaRight' || e.metaKey) { this.releaseAll(); return; }
+    if (e.ctrlKey || e.altKey) return;
     // Space on a focused button must still activate it (Firefox cancels the click otherwise).
     const onButton = (e.target as { tagName?: string } | null)?.tagName === 'BUTTON';
     if (BLOCKED.includes(e.code) && !(onButton && e.code === 'Space')) e.preventDefault();

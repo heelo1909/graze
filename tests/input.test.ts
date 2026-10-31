@@ -70,3 +70,16 @@ test('dispose removes listeners', () => {
   down('ArrowLeft');
   expect(i.steer()).toBe(0);
 });
+
+test('Cmd/Ctrl/Alt chords do not latch steering; Meta down releases held keys', () => {
+  const i = make();
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyA', metaKey: true, cancelable: true }));
+  expect(i.steer()).toBe(0);
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyD', ctrlKey: true, cancelable: true }));
+  window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyD', altKey: true, cancelable: true }));
+  expect(i.steer()).toBe(0);
+  down('ArrowLeft');
+  expect(i.steer()).toBe(-1);
+  down('MetaLeft');
+  expect(i.steer()).toBe(0);
+});

@@ -7,7 +7,6 @@ import { Input } from './input';
 import { stepsFor, triggersSlowmo } from './loop';
 import { Renderer } from './render/renderer';
 import { createMatch, stepMatch, type Match } from './sim/match';
-import { matchWinner, targetPoints } from './sim/scoring';
 import type { SimEvent, Slot, Steer } from './sim/types';
 import { clearScreen, loadPref, savePref, showMatchEnd, showTitle } from './ui/screens';
 
@@ -88,7 +87,7 @@ function react(events: SimEvent[], match: Match): void {
   for (const e of events) {
     if (e.type === 'graze' && e.car === HUMAN) audio.graze(match.world.cars[HUMAN]?.boost ?? 0);
     else if (e.type === 'crash') audio.crash();
-    else if (e.type === 'roundOver' && e.winner === HUMAN) audio.win();
+    else if (e.type === 'roundOver' && e.winner === HUMAN) audio.win(); // also covers the deciding round
   }
   if (triggersSlowmo(events, HUMAN)) slowLeft = TUNING.SLOWMO_S;
 
@@ -104,7 +103,6 @@ function react(events: SimEvent[], match: Match): void {
   if (match.phase === 'matchEnd' && !endShown) {
     endShown = true;
     input.releaseAll();
-    if (matchWinner(match.totals, targetPoints(match.slots.length)) === HUMAN) audio.win();
     showMatchEnd(ui, match, startMatch);
   }
 }
