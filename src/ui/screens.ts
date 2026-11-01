@@ -150,7 +150,11 @@ export function showTitleError(root: HTMLElement, message: string): void {
   line.textContent = message;
 }
 
-export function showMatchEnd(root: HTMLElement, m: Match, local: number[], onAgain: () => void, onMenu: () => void): void {
+/** Online match end: the host gets `Back to lobby` (`onAgain`), joiners get `Waiting for host…`
+ *  (`onAgain` null); everyone gets `Leave`. */
+export interface OnlineEnd { onAgain: (() => void) | null }
+
+export function showMatchEnd(root: HTMLElement, m: Match, local: number[], onAgain: () => void, onMenu: () => void, online?: OnlineEnd): void {
   clearScreen(root);
   const w = matchWinner(m.totals, targetPoints(m.slots.length));
   const wrap = el('div', 'screen end');
@@ -170,14 +174,17 @@ export function showMatchEnd(root: HTMLElement, m: Match, local: number[], onAga
   });
   wrap.append(table);
 
-  const again = el('button', 'primary', 'Play Again');
+  const waiting = online !== undefined && online.onAgain === null;
+  const again = el('button', 'primary', online ? 'Back to lobby' : 'Play Again');
   again.type = 'button';
   again.addEventListener('click', onAgain);
-  const menu = el('button', 'ghost', 'Menu');
+  const menu = el('button', 'ghost', online ? 'Leave' : 'Menu');
   menu.type = 'button';
   menu.addEventListener('click', onMenu);
-  wrap.append(again, menu);
+  if (waiting) wrap.append(el('p', 'keys', 'Waiting for host…'), menu);
+  else wrap.append(again, menu);
   root.append(wrap);
+  if (waiting) { menu.focus(); return; }
   bindPrimary(again);
   again.focus();
 }
