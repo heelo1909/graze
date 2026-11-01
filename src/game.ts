@@ -46,6 +46,8 @@ let endShown = false;
 let steerOverride: Steer | null = null;
 /** Set while an online room is open; then the local match above is idle. */
 let online: OnlineGame | null = null;
+/** Debug pump's synthetic clock (seconds); 0 until first used. */
+let pumpT = 0;
 const transport = peerTransport();
 
 // Browsers only allow sound after a gesture; Safari needs resume() inside it.
@@ -144,7 +146,13 @@ function react(events: SimEvent[], match: Match): void {
 function frame(now: number): void {
   const frameDt = Math.min(0.25, Math.max(0, (now - last) / 1000));
   last = now;
-  if (online) online.frame(now / 1000, frameDt);
+  runFrame(now / 1000, frameDt);
+  requestAnimationFrame(frame);
+}
+
+/** One frame of work (local or online) at `now` seconds; the rAF loop and the debug pump share it. */
+function runFrame(now: number, frameDt: number): void {
+  if (online) online.frame(now, frameDt);
   else if (m) {
     // Slow motion (spec 4.7) scales sim time only; banners/shake/screens use real time.
     const scale = slowLeft > 0 ? TUNING.SLOWMO_SCALE : 1;
@@ -152,9 +160,8 @@ function frame(now: number): void {
     const r = stepsFor(acc, frameDt * scale);
     acc = r.rest;
     for (let i = 0; i < r.steps; i++) step();
-    renderer.draw(m, now / 1000, interp.cars(m.world, renderAlpha(acc)));
+    renderer.draw(m, now, interp.cars(m.world, renderAlpha(acc)));
   }
-  requestAnimationFrame(frame);
 }
 
 openTitle();
@@ -183,6 +190,12 @@ if (debug) {
     state,
     /** Online role, session state and seat count. */
     online: (): string => online?.describe() ?? 'offline',
+    /** Runs `seconds` of frames synchronously on a synthetic clock (for a hidden tab where rAF crawls). */
+    pump(seconds: number): string {
+      pumpT ||= performance.now() / 1000;
+      for (let i = 0; i < Math.round(seconds * 60); i++) { pumpT += 1 / 60; runFrame(pumpT, 1 / 60); }
+      return online ? online.describe() : state();
+    },
     /** Real frame intervals over `ms` of live rAF frames: avg and max ms. */
     frames(ms: number): Promise<string> {
       return new Promise((done) => {
