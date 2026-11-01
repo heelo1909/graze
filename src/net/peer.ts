@@ -80,7 +80,7 @@ class PeerLink implements Link {
     const conn = this.conns.get(peer);
     if (!conn) return;
     this.conns.delete(peer); // removed first, so our own 'close' handler stays silent
-    conn.close();
+    conn.close({ flush: true }); // let the 'refused' message out before the channel shuts
   }
   close(): void {
     if (this.closed) return;
@@ -107,6 +107,7 @@ export function peerTransport(): Transport {
         const link = new PeerLink(peer, code, true);
         peer.on('connection', (conn) => conn.on('open', () => link.joined(conn)));
         peer.on('error', () => { /* a failed joiner attempt must not kill the room */ });
+        peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); }); // lost broker link: keep the code joinable
         return link;
       }
       throw new RoomError('taken', 'Could not find a free room code');
@@ -125,9 +126,11 @@ export function peerTransport(): Transport {
       }
       const conn = await new Promise<DataConnection>((resolve, reject) => {
         const c = peer.connect(peerIdFor(code), { reliable: true });
-        const timer = setTimeout(() => reject(new RoomError('not-found', 'Room not found')), JOIN_TIMEOUT_MS);
+        const blocked = (): RoomError => new RoomError('network', "Couldn't connect to that room. The network may be blocking it.");
+        const timer = setTimeout(() => reject(blocked()), JOIN_TIMEOUT_MS);
         const fail = (e: RoomError): void => { clearTimeout(timer); reject(e); };
         c.on('open', () => { clearTimeout(timer); resolve(c); });
+        c.on('error', () => fail(blocked()));
         peer.on('error', (err) => {
           fail(errType(err) === 'peer-unavailable'
             ? new RoomError('not-found', 'Room not found')

@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
-import { BURST_MAX, filterBurst, refusedMessage } from '../src/online';
+import { BURST_MAX, filterBurst, hostTimedOut, refusedMessage } from '../src/online';
+import { TUNING } from '../src/config';
 import type { SimEvent } from '../src/sim/types';
 
 const trail = (car: number): SimEvent => ({ type: 'trail', car, x0: 0, y0: 0, x1: 1, y1: 1 });
@@ -30,4 +31,10 @@ test('refused reasons map to user-facing messages', () => {
   expect(refusedMessage('full')).toBe('That room is full');
   expect(refusedMessage('started')).toBe('That game already started');
   expect(refusedMessage(null)).toBe('That game already started');
+});
+
+test('host timeout fires only after NET_HOST_TIMEOUT_S of silence', () => {
+  expect(hostTimedOut(null, 100)).toBe(false);
+  expect(hostTimedOut(100, 100 + TUNING.NET_HOST_TIMEOUT_S)).toBe(false);
+  expect(hostTimedOut(100, 100 + TUNING.NET_HOST_TIMEOUT_S + 0.1)).toBe(true);
 });

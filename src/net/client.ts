@@ -24,6 +24,8 @@ export class ClientSession {
   private events: SimEvent[] = [];
   private feed: string[] = [];
   private lastSent: Steer | null = null;
+  /** Clock time of the newest snap this match (null before the first). */
+  lastSnapAt: number | null = null;
   private out: Car[] = [];
   private readonly changeCbs: Array<() => void> = [];
 
@@ -139,6 +141,7 @@ export class ClientSession {
 
   private endMatch(): void {
     this.match = null;
+    this.lastSnapAt = null;
     this.buf.clear();
     this.events = [];
   }
@@ -148,6 +151,7 @@ export class ClientSession {
     if (!m) return;
     if (s.round !== m.round) {
       m.world = createWorld(m.slots, m.seed + s.round);
+      this.events = []; // queued old-round events would paint ghost trails on the new world
       this.buf.clear();
       this.predictor.reset(m.world.cars[this.you] ?? this.predictor.car);
     }
@@ -165,7 +169,8 @@ export class ClientSession {
       c.x = n.x; c.y = n.y; c.vx = n.vx; c.vy = n.vy;
       c.heading = n.heading; c.hold = n.hold; c.boost = n.boost; c.alive = n.alive;
     });
-    this.buf.push(s, this.clock());
+    this.lastSnapAt = this.clock();
+    this.buf.push(s, this.lastSnapAt);
     const mine = s.cars[this.you];
     if (mine?.alive) this.predictor.correct(mine);
     this.events.push(...s.events);

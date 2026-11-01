@@ -40,6 +40,11 @@ export function filterBurst(events: SimEvent[]): { events: SimEvent[]; burst: bo
   return { events: events.filter((e) => e.type === 'trail'), burst: true };
 }
 
+/** True when no snap has arrived for longer than NET_HOST_TIMEOUT_S (the host dropped silently). */
+export function hostTimedOut(lastSnapAt: number | null, now: number): boolean {
+  return lastSnapAt !== null && now - lastSnapAt > TUNING.NET_HOST_TIMEOUT_S;
+}
+
 export function refusedMessage(reason: 'full' | 'started' | null): string {
   return reason === 'full' ? 'That room is full' : 'That game already started';
 }
@@ -179,6 +184,10 @@ export function startOnline(deps: OnlineDeps, mode: OnlineMode): OnlineGame {
     if (!burst) react(events, m);
     feed(c.takeFeed());
     phaseAudio(m);
+    if (m.phase !== 'matchEnd' && hostTimedOut(c.lastSnapAt, now)) {
+      fail('Lost connection to the host');
+      return;
+    }
     renderer.setNotice(m.phase !== 'matchEnd' && c.stale(now) ? 'Waiting for host…' : null);
     renderer.draw(m, now, c.cars(now));
   }

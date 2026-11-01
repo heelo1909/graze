@@ -125,4 +125,34 @@ describe('ClientSession', () => {
     expect(c.x).toBeCloseTo(spawn.x, 3);
     expect(c.y).toBeCloseTo(spawn.y, 3);
   });
+
+  test('round change drops queued old-round events', async () => {
+    const s = await setup();
+    s.host.start(3);
+    s.hub.flush();
+    const c = s.client as unknown as { applySnap(sn: { round: number; events: unknown[] }): void };
+    const orig = c.applySnap.bind(c);
+    let newRoundEvents = 0;
+    c.applySnap = (sn) => {
+      if (sn.round > 1) newRoundEvents += sn.events.length;
+      orig(sn);
+    };
+    let t = 0;
+    for (let i = 0; i < 60 * 120 && s.client.match!.round === 1; i++) t = run(s, DT, t);
+    expect(s.client.match!.round).toBe(2);
+    // nothing was drained during round 1, so old trails are queued unless dropped
+    expect(s.client.takeEvents().length).toBe(newRoundEvents);
+  });
+
+  test('a refusal stays refused when the host then drops us', async () => {
+    const s = await setup();
+    s.host.start(1);
+    s.hub.flush();
+    const late = await s.join();
+    s.hub.flush();
+    expect(late.state).toBe('refused');
+    s.hostLink.close();
+    s.hub.flush();
+    expect(late.state).toBe('refused');
+  });
 });
