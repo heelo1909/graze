@@ -79,3 +79,35 @@ test('empty seats show Bot or dash', () => {
   showLobby(root, view({ bots: false }), handlers());
   expect([...root.querySelectorAll('.seat')].filter((s) => s.textContent === '—').length).toBe(2);
 });
+
+const diffLabel = (): string | undefined =>
+  [...root.querySelectorAll('.field-label')].map((e) => e.textContent ?? '').find((t) => t === 'Bot difficulty');
+const blurb = (): string => root.querySelector('.diff-blurb')?.textContent ?? '';
+
+test('title labels the bot difficulty and describes the picked level', () => {
+  localStorage.clear();
+  const onPlay = vi.fn();
+  showTitle(root, { onPlay, muted: false, onMute: vi.fn(), onCreate: vi.fn(), onJoin: vi.fn() });
+  expect(diffLabel()).toBe('Bot difficulty');
+  expect(blurb()).toMatch(/^Normal/);
+  btn('Hard').click();
+  expect(btn('Hard').getAttribute('aria-pressed')).toBe('true');
+  expect(blurb()).toMatch(/^Hard/);
+  btn('Play').click();
+  expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ difficulty: 'hard' }));
+});
+
+test('lobby: host gets the labeled picker, joiners see the level read-only', () => {
+  const h = handlers();
+  showLobby(root, view({ difficulty: 'easy' }), h);
+  expect(diffLabel()).toBe('Bot difficulty');
+  expect(blurb()).toMatch(/^Easy/);
+  lbtn('Hard')!.click();
+  expect(h.onDifficulty).toHaveBeenCalledWith('hard');
+  showLobby(root, view({ isHost: false, you: 1, difficulty: 'hard' }), handlers());
+  expect(lbtn('Hard')).toBeUndefined();
+  expect(diffLabel()).toBe('Bot difficulty');
+  expect(blurb()).toMatch(/^Hard/);
+  showLobby(root, view({ isHost: false, you: 1, bots: false }), handlers());
+  expect(diffLabel()).toBeUndefined();
+});

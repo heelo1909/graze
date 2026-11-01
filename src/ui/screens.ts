@@ -5,13 +5,11 @@ import { matchWinner, targetPoints } from '../sim/scoring';
 import type { Players } from '../players';
 import type { Match } from '../sim/match';
 import { matchHeading } from './heading';
+import { DIFFS, difficultyPicker } from './difficulty';
 import { el } from './dom';
 import { buildOnlineRow } from './online-row';
 
 export const NAME_MAX = 12;
-const DIFFS: { id: Difficulty; label: string }[] = [
-  { id: 'easy', label: 'Easy' }, { id: 'normal', label: 'Normal' }, { id: 'hard', label: 'Hard' },
-];
 
 export function loadPref(key: string): string | null {
   try { return localStorage.getItem(`graze.${key}`); } catch { return null; }
@@ -72,16 +70,7 @@ export function showTitle(
   input.value = (loadPref('name') ?? 'You').slice(0, NAME_MAX);
   label.append(input);
 
-  const diffGroup = el('div', 'seg');
-  diffGroup.setAttribute('role', 'group');
-  diffGroup.setAttribute('aria-label', 'Bot difficulty');
-  const diffBtns = DIFFS.map((d) => {
-    const b = el('button', 'seg-btn', d.label);
-    b.type = 'button';
-    b.addEventListener('click', () => { difficulty = d.id; paint(); });
-    diffGroup.append(b);
-    return { b, id: d.id };
-  });
+  const diffField = difficultyPicker(difficulty, (d) => { difficulty = d; });
   const playGroup = el('div', 'seg');
   playGroup.setAttribute('role', 'group');
   playGroup.setAttribute('aria-label', 'Players');
@@ -94,7 +83,6 @@ export function showTitle(
   });
   const keys = el('p', 'keys');
   const paint = (): void => {
-    diffBtns.forEach(({ b, id }) => b.setAttribute('aria-pressed', String(id === difficulty)));
     playBtns.forEach(({ b, n }) => b.setAttribute('aria-pressed', String(n === players)));
     nameLabel.textContent = players === 2 ? 'P1 name' : 'Your name';
     keys.textContent = players === 2 ? 'P1: A D   ·   P2: ← →' : '← →  or  A D  to steer';
@@ -132,7 +120,7 @@ export function showTitle(
   };
   const online = buildOnlineRow(() => opts.onCreate(typedName()), (code) => opts.onJoin(typedName(), code));
 
-  wrap.append(label, playGroup, diffGroup, play, online, mute, keys);
+  wrap.append(label, playGroup, diffField, play, online, mute, keys);
   root.append(wrap);
   bindPrimary(play);
   play.focus();
