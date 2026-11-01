@@ -71,6 +71,11 @@ export class Renderer {
     this.hud.local = this.local;
   }
 
+  /** Centred HUD message (online "Waiting for host…"); null clears it. */
+  setNotice(text: string | null): void {
+    this.hud.notice = text;
+  }
+
   setDebug(on: boolean): void {
     this.debug.enabled = on;
     if (on && this.world) this.debug.rebuild(this.world.grid, this.colors);

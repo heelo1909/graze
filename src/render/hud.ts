@@ -59,6 +59,8 @@ export class Hud {
   dpr = 1;
   /** Car ids steered on this device. The renderer keeps it current. */
   local: number[] = [];
+  /** Centred status text (e.g. "Waiting for host…"); null hides it. */
+  notice: string | null = null;
   private bannerNow: Banner | null = null;
   private lines: FeedLine[] = [];
   private textCache = new Map<string, TextImg>();
@@ -208,6 +210,12 @@ export class Hud {
       this.drawRoundEnd(ctx, m, cx, my, me);
     } else if (m.phase === 'matchEnd') {
       this.drawMatchEnd(ctx, m, sw, sh);
+    }
+    if (this.notice) {
+      ctx.textAlign = 'center';
+      ctx.font = font(700, 22, DISPLAY_FONT);
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.fillText(this.notice, cx, my);
     }
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';

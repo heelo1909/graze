@@ -3,7 +3,7 @@
 A minimal browser game. Cars drift with only ←/→, leave glowing trails and cut each other off. Up to 4 players (bots fill empty spots). Built with Vite + TypeScript, deployed to GitHub Pages.
 
 - **Spec (the authority):** `sections.md`. If code and spec disagree, the spec wins. If the spec is silent, ask.
-- **Current plan:** `docs/superpowers/plans/2026-10-31-graze-couch.md` (milestone 2a: same-keyboard 2-player). Milestone 1 (solo vs bots, `2026-10-31-graze-solo.md`) is done. Online room codes are milestone 2b.
+- **Current plan:** `docs/superpowers/plans/2026-10-31-graze-online.md` (milestone 2b: online room codes). Milestone 1 (solo vs bots, `2026-10-31-graze-solo.md`) and milestone 2a (same-keyboard 2-player, `2026-10-31-graze-couch.md`) are done.
 
 ## Commands
 
@@ -25,6 +25,9 @@ A minimal browser game. Cars drift with only ←/→, leave glowing trails and c
 4. **Debug overlay** (`?debug`): FPS and frame time, nose samples, occupied grid cells, current bounds. Use it to check rendering and collision by eye. Never ship it switched on by default.
 5. **Browser check:** for anything visual or input-related, run the game and check it in **Chrome and Safari**. Frame time must stay under 16.7 ms at the busiest point of a round on a MacBook Air M4.
 
+6. **Netcode:** `tests/net-*.test.ts` run host and joiner over `LoopbackHub`. Any change to `src/net/` keeps them green. For real connections, use `?nettest` (two tabs, or two MacBooks on the school Wi-Fi).
+7. **Online debug hooks** (`?debug`): `__graze.online()` returns role, state and seats. `__graze.pump(seconds)` runs frames on a synthetic 60 Hz clock. The browser preview pane runs requestAnimationFrame very slowly when hidden (measured ~1 fps), so use `pump` for automated checks.
+
 Never say something works without running the harness that proves it. Report failures with their output.
 
 ## Architecture rules
@@ -33,6 +36,8 @@ Never say something works without running the harness that proves it. Report fai
 - Fixed timestep: the sim always steps at `DT = 1/60`. The frame loop uses `stepsFor()` (capped at 0.25 s).
 - **Every gameplay number lives in `TUNING`** (`src/config.ts`). No magic numbers in logic.
 - Shared types live in `src/sim/types.ts`.
+- `src/main.ts` is a small router: `?nettest` loads `src/net/nettest.ts`, otherwise it imports `./game`. The game loop is in `src/game.ts` and the online flow in `src/online.ts`.
+- `src/net/` has no DOM except `peer.ts`. The host is authoritative, and joiners never decide crashes. Networking sits behind the `transport.ts` interface (`peer.ts` for PeerJS, `loopback.ts` for tests). Net numbers (`NET_*`) live in `TUNING`.
 - `car.heading` is never wrapped. Normalise any angle difference to [-π, π].
 - Bots use the same handling (`stepCar`) and the same collision as players. No cheating, and no separate physics.
 - Keep files small and single-purpose (see the plan's file map). If a file grows past about 300 lines, stop and flag it.

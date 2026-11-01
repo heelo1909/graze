@@ -98,6 +98,7 @@ In the test version, driving around the edges was safe. v1 must make it a losing
 Keep this from the test versions, since it's the moment that gets people yelling:
 - When someone hits your trail: a dashed line in your color points from the crash to your car, a brief slow motion plays (only on screens of the players involved), and a big **"CUT OFF BY ROOK"** / **"YOU CUT OFF PIXEL"** message appears.
 - Other crashes show up in a small feed at the side ("Rook cut off Moss", "Pixel crashed").
+- Online (v1): no slow motion, since the host's slow motion would slow everyone. Banners and the tether still play. Confirm with the user.
 
 ## 5. Multiplayer
 
@@ -118,6 +119,11 @@ Keep this from the test versions, since it's the moment that gets people yelling
 - **The host sends:** car states about 30 times a second, plus only the new pieces of trail. Joiners smooth movement between updates.
 - **Steering must feel instant:** each joiner's own car moves on their screen right away using the same handling code, then quietly corrects toward the host's version. Crashes and points come only from the host.
 - **When the joiner's screen and the host disagree (my call):** no rewinding. The joiner's car never crashes on its own screen; it waits for the host's decision. If the host says it crashed, the explosion plays at the host's position. Small position differences are smoothed out over about 100 ms, and larger ones snap. The game logic does not need to be deterministic.
+- **Measured values (built in milestone 2b):**
+  - Joiners draw other cars 100 ms behind the host (`NET_INTERP_DELAY_S`), interpolating between snapshots at 30 Hz. If no snapshot arrives for 2 s (`NET_STALE_S`), the link counts as stale.
+  - Own-car correction: the joiner compares the host's position against the nearest pose in its own last 0.5 s of predicted poses (so network delay doesn't pull the car back). Small errors blend out over about 100 ms (`NET_SMOOTH_S`); errors above 40 units (`NET_SNAP_DIST`) snap. No rewinding.
+  - `?nettest` on localhost: rtt avg 0.8 ms, p95 1 ms, lost 0.
+  - `?nettest` on school Wi-Fi: pending. Run `?nettest` on two MacBooks on school Wi-Fi. PASS keeps PeerJS; CHECK means build the Firebase relay.
 - **Rooms:** "Create" gives a 4-letter code (no confusing letters like O/0 or I/1). "Join" takes a code. The lobby shows who's in (name and color) and the host has a Start button. Empty spots show as bots.
 - **Leaving:** a player who leaves mid-game is replaced by a bot. If the host leaves, the game ends for everyone with a clear message. No host migration in v1.
 - **Joining (my call):** players can join only while the room is in the lobby. Once the host presses Start, the room is closed until the match ends and everyone returns to the lobby. A bot that replaced a leaver keeps that spot until the match ends. No reconnecting in v1.

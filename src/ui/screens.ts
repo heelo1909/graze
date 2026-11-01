@@ -5,6 +5,8 @@ import { matchWinner, targetPoints } from '../sim/scoring';
 import type { Players } from '../players';
 import type { Match } from '../sim/match';
 import { matchHeading } from './heading';
+import { el } from './dom';
+import { buildOnlineRow } from './online-row';
 
 export const NAME_MAX = 12;
 const DIFFS: { id: Difficulty; label: string }[] = [
@@ -16,13 +18,6 @@ export function loadPref(key: string): string | null {
 }
 export function savePref(key: string, value: string): void {
   try { localStorage.setItem(`graze.${key}`, value); } catch { /* storage blocked: skip */ }
-}
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, text?: string): HTMLElementTagNameMap[K] {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text !== undefined) e.textContent = text;
-  return e;
 }
 
 let cleanup: (() => void) | null = null;
@@ -49,7 +44,13 @@ function bindPrimary(primary: HTMLButtonElement): void {
 
 export function showTitle(
   root: HTMLElement,
-  opts: { onPlay(cfg: { name: string; difficulty: Difficulty; players: Players }): void; muted: boolean; onMute(m: boolean): void },
+  opts: {
+    onPlay(cfg: { name: string; difficulty: Difficulty; players: Players }): void;
+    onCreate(name: string): void;
+    onJoin(name: string, code: string): void;
+    muted: boolean;
+    onMute(m: boolean): void;
+  },
 ): void {
   clearScreen(root);
   const saved = loadPref('difficulty');
@@ -123,13 +124,37 @@ export function showTitle(
   play.addEventListener('click', go);
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
 
-  wrap.append(label, playGroup, diffGroup, play, mute, keys);
+  // Online is one player per laptop: the typed name goes as-is (no 2P "P1" fallback).
+  const typedName = (): string => {
+    const typed = input.value.trim().slice(0, NAME_MAX) || 'You';
+    savePref('name', typed);
+    return typed;
+  };
+  const online = buildOnlineRow(() => opts.onCreate(typedName()), (code) => opts.onJoin(typedName(), code));
+
+  wrap.append(label, playGroup, diffGroup, play, online, mute, keys);
   root.append(wrap);
   bindPrimary(play);
   play.focus();
 }
 
-export function showMatchEnd(root: HTMLElement, m: Match, local: number[], onAgain: () => void, onMenu: () => void): void {
+/** Shows a message line on the title that is currently up; no-op when there is none. */
+export function showTitleError(root: HTMLElement, message: string): void {
+  const title = root.querySelector('.title');
+  if (!title) return;
+  let line = title.querySelector('.title-error');
+  if (!line) {
+    line = el('p', 'title-error');
+    title.querySelector('.online')?.after(line);
+  }
+  line.textContent = message;
+}
+
+/** Online match end: the host gets `Back to lobby` (`onAgain`), joiners get `Waiting for host…`
+ *  (`onAgain` null); everyone gets `Leave`. */
+export interface OnlineEnd { onAgain: (() => void) | null }
+
+export function showMatchEnd(root: HTMLElement, m: Match, local: number[], onAgain: () => void, onMenu: () => void, online?: OnlineEnd): void {
   clearScreen(root);
   const w = matchWinner(m.totals, targetPoints(m.slots.length));
   const wrap = el('div', 'screen end');
@@ -149,14 +174,17 @@ export function showMatchEnd(root: HTMLElement, m: Match, local: number[], onAga
   });
   wrap.append(table);
 
-  const again = el('button', 'primary', 'Play Again');
+  const waiting = online !== undefined && online.onAgain === null;
+  const again = el('button', 'primary', online ? 'Back to lobby' : 'Play Again');
   again.type = 'button';
   again.addEventListener('click', onAgain);
-  const menu = el('button', 'ghost', 'Menu');
+  const menu = el('button', 'ghost', online ? 'Leave' : 'Menu');
   menu.type = 'button';
   menu.addEventListener('click', onMenu);
-  wrap.append(again, menu);
+  if (waiting) wrap.append(el('p', 'keys', 'Waiting for host…'), menu);
+  else wrap.append(again, menu);
   root.append(wrap);
+  if (waiting) { menu.focus(); return; }
   bindPrimary(again);
   again.focus();
 }
