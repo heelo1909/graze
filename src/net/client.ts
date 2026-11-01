@@ -119,6 +119,7 @@ export class ClientSession {
         this.buf.clear();
         this.events = [];
         this.lastSent = null;
+        this.lastSnapAt = null;
         this.predictor.reset(this.match.world.cars[this.you] ?? this.predictor.car);
         this.state = 'playing';
         break;

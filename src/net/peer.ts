@@ -32,7 +32,8 @@ class PeerLink implements Link {
   private readonly leaveCbs: Array<(peer: PeerId) => void> = [];
   /** Host: open joiner connections by peer id. Joiner: just the host. */
   private readonly conns = new Map<PeerId, DataConnection>();
-  private closed = false;
+  closed = false;
+  reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private readonly peer: Peer,
@@ -85,6 +86,8 @@ class PeerLink implements Link {
   close(): void {
     if (this.closed) return;
     this.closed = true;
+    if (this.reconnectTimer !== null) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
     this.conns.clear();
     this.peer.destroy();
   }
@@ -107,7 +110,19 @@ export function peerTransport(): Transport {
         const link = new PeerLink(peer, code, true);
         peer.on('connection', (conn) => conn.on('open', () => link.joined(conn)));
         peer.on('error', () => { /* a failed joiner attempt must not kill the room */ });
-        peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); }); // lost broker link: keep the code joinable
+        // lost broker link: keep the code joinable. destroy() emits 'disconnected' before it sets
+        // peer.destroyed, so also consult link.closed; delay + cap so an unreachable broker cannot loop.
+        let reconnects = 0;
+        peer.on('open', () => { reconnects = 0; });
+        peer.on('disconnected', () => {
+          if (link.closed || peer.destroyed || link.reconnectTimer !== null || reconnects >= 3) return;
+          reconnects++;
+          link.reconnectTimer = setTimeout(() => {
+            link.reconnectTimer = null;
+            if (link.closed || peer.destroyed) return;
+            try { peer.reconnect(); } catch { /* next 'disconnected' (if any) retries, up to the cap */ }
+          }, 1000);
+        });
         return link;
       }
       throw new RoomError('taken', 'Could not find a free room code');
