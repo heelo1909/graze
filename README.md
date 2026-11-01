@@ -10,11 +10,12 @@ Play solo against 3 bots, share one keyboard for 2 players, or play online with 
 
 ## Play online
 
-1. One player picks Create Room and shares the 4-letter code.
-2. Everyone else picks Join Room and types the code.
-3. The host presses Start. Bots fill any empty seats.
+1. Open https://heelo1909.github.io/graze/
+2. One player picks Create Room and shares the 4-letter code.
+3. Everyone else picks Join Room and types the code.
+4. The host presses Start. Bots fill any empty seats.
 
-It works best when everyone is on the same Wi-Fi. If it won't connect at school, that network blocks direct connections. A fallback is planned.
+It works best when everyone is on the same Wi-Fi. Some school networks block direct connections. If it won't connect there, tell the host. A fallback is planned if that happens.
 
 ## Run locally
 

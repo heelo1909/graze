@@ -26,7 +26,7 @@ A minimal browser game. Cars drift with only ←/→, leave glowing trails and c
 5. **Browser check:** for anything visual or input-related, run the game and check it in **Chrome and Safari**. Frame time must stay under 16.7 ms at the busiest point of a round on a MacBook Air M4.
 
 6. **Netcode:** `tests/net-*.test.ts` run host and joiner over `LoopbackHub`. Any change to `src/net/` keeps them green. For real connections, use `?nettest` (two tabs, or two MacBooks on the school Wi-Fi).
-7. **Online debug hooks** (`?debug`): `__graze.online()` returns role, state and seats. `__graze.pump(seconds)` runs frames on a synthetic 60 Hz clock. The browser preview pane runs rAF at about 1 fps when hidden, so use `pump` for automated checks.
+7. **Online debug hooks** (`?debug`): `__graze.online()` returns role, state and seats. `__graze.pump(seconds)` runs frames on a synthetic 60 Hz clock. The browser preview pane runs requestAnimationFrame very slowly when hidden (measured ~1 fps), so use `pump` for automated checks.
 
 Never say something works without running the harness that proves it. Report failures with their output.
 
